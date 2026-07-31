@@ -1,8 +1,14 @@
-# UniSC — 2026 IEEE SMCS SAR Competition, Phase 1 Submission
+# ctrl+alt+detect — 2026 IEEE SMCS SAR Competition, Phase 1 Submission
 
-Solo entry, University of the Sunshine Coast. Everything runs from
-`proposed_solution.py`; flyover analysis is triggered automatically before the
-control loop starts, so no separate preprocessing command is required.
+University of the Sunshine Coast. Everything runs from `proposed_solution.py`;
+flyover analysis is triggered automatically before the control loop starts, so
+no separate preprocessing command is required.
+
+Two extraction pipelines ship, each doing what it measured best at:
+`flyover_extraction.py` writes the two GRADED deliverables (victim estimates and
+wall map), and `prepare_mission.py` runs alongside it purely to produce the
+controller's internal planning grid, writing its own estimates to
+`sim_logs/uni_extract/` where they cannot be mistaken for the answer.
 
 ## Environment replication
 
@@ -26,17 +32,26 @@ Results are cached in `sim_logs/` and reused until the recording or the
 extraction code changes. Manual trigger, if preferred:
 
 ```bash
-python prepare_mission.py --video ../../recordings/<world>_flyover.mp4
+python flyover_extraction.py --video ../../recordings/<world>_flyover.mp4
+python prepare_mission.py    --video ../../recordings/<world>_flyover.mp4
 ```
 
 The IMU CSV beside the video is auto-detected. Outputs written to `sim_logs/`:
-`victim_location_estimates.csv` (headerless `x,y` per line),
-`map_estimate.png` (600×600 @ 0.05 m/px, walls black, free space white),
-`nav_grid.npy` (internal planning grid).
+`victim_location_estimates.csv` (headerless `x,y` per line) and
+`map_estimate.png` (600×600 @ 0.05 m/px, walls black, free space white), both
+from `flyover_extraction.py`; plus `nav_grid.npy` (internal planning grid) from
+`prepare_mission.py`, whose own estimates land in `sim_logs/uni_extract/`.
 
 ## Solution overview
 
-**Flyover extraction** (`prepare_mission.py`): camera intrinsics are
+**Victim and map extraction** (`flyover_extraction.py`, with `route_planning.py`):
+victim positions are projected from the flyover IMU track with scale parameters
+selected by recording length, then clustered and filtered to a submitted set.
+This pipeline localises victims to a mean 0.30–0.61 m of the scored markers on
+the development worlds, against 1.45–5.06 m for the alternative below — decisive
+given the 1.0 m scoring radius.
+
+**Planning-grid extraction** (`prepare_mission.py`): camera intrinsics are
 calibrated from ArUco views of the origin mat. Pass 1 runs compass-constrained
 visual odometry at 4 Hz with multi-pass loop closure and a global pose solve,
 followed by mosaic re-registration. Because visual odometry pins metric scale
@@ -75,6 +90,15 @@ last victim is reported).
 | File | Purpose |
 | --- | --- |
 | `proposed_solution.py` | Ground-robot controller (both robots) + automatic preflight |
-| `prepare_mission.py` | Flyover video → victim CSV + wall map + planning grid |
+| `flyover_extraction.py` | Flyover video → **graded** victim CSV + wall map |
+| `route_planning.py` | Route/waypoint helpers imported by `flyover_extraction.py` |
+| `prepare_mission.py` | Flyover video → `nav_grid.npy` planning grid (its CSV/map go to `sim_logs/uni_extract/`) |
 | `requirements.txt` | Pinned dependencies |
 | `sim_logs/` | Extraction outputs (generated at runtime) |
+
+## Team
+
+ctrl+alt+detect, University of the Sunshine Coast — Josiah Morrow, Ezekiel Pari,
+Alex Bertus, Alexandra Webster. Academic advisor: Dr Erica Mealy.
+`flyover_extraction.py` and `route_planning.py` are Ezekiel Pari's work; the
+controller, planning-grid extraction and integration are Josiah Morrow's.
