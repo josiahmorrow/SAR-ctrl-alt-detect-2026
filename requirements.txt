@@ -1,0 +1,8 @@
+# Pinned to the exact versions tested in development (Python 3.10+, Webots R2025a).
+# Install: pip install -r requirements.txt
+#
+# opencv-contrib-python (not opencv-python) is required — the contrib build
+# includes the ArUco module used for calibration in prepare_mission.py.
+numpy==2.4.6
+opencv-contrib-python==4.13.0.92
+pillow==12.2.0
