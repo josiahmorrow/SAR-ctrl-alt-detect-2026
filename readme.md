@@ -102,3 +102,5 @@ ctrl+alt+detect, University of the Sunshine Coast — Josiah Morrow, Ezekiel Par
 Alex Bertus, Alexandra Webster. Academic advisor: Dr Erica Mealy.
 `flyover_extraction.py` and `route_planning.py` are Ezekiel Pari's work; the
 controller, planning-grid extraction and integration are Josiah Morrow's.
+
+Licensed under the MIT License; see LICENSE.
