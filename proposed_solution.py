@@ -1523,6 +1523,7 @@ class SARRobot:
         min_depth = float('inf')
         med_h = low_h = float('nan')
         width_m = float('nan')
+        thick_m = float('nan')
 
         # Depth + geometry refinement over the denim BLOB only.
         if self._depth_camera:
@@ -1558,6 +1559,18 @@ class SARRobot:
                 hgt  = CAM_HEIGHT_M + d * np.tan(elev)
                 med_h = float(np.median(hgt))
                 low_h = float(np.percentile(hgt, 10))
+                # Telemetry: physical vertical THICKNESS of the blob (p75 over
+                # columns of run length x column depth / focal). Distance-
+                # invariant; a cart rim is a few cm, a limb or torso is not.
+                try:
+                    _ok   = mask_d & np.isfinite(depth_arr) & (depth_arr > 0.1)
+                    _cnt  = _ok.sum(axis=0)
+                    _sel  = _cnt > 0
+                    _dsum = np.where(_ok, depth_arr, 0.0).sum(axis=0)
+                    _th   = _cnt[_sel] * (_dsum[_sel] / _cnt[_sel]) / f_y
+                    thick_m = float(np.percentile(_th, 75))
+                except Exception:
+                    thick_m = float('nan')
                 # A person's denim reaches down toward the floor; window glass
                 # never does. Geometry, not world knowledge — safe on unseen maps.
                 if med_h > VICTIM_DENIM_MAX_H_M or low_h > VICTIM_DENIM_LOW_H_M:
@@ -1608,7 +1621,7 @@ class SARRobot:
             except Exception:
                 pass
         self._last_vision = {"why": "candidate", "conf": base_conf,
-                             "tex_v": tex_v, "tex_s": tex_s,
+                             "tex_v": tex_v, "tex_s": tex_s, "thick_m": thick_m,
                              "depth": min_depth, "blob": blob_frac,
                              "ratio": ratio, "med_h": med_h, "low_h": low_h,
                              "width_m": width_m}
@@ -1642,7 +1655,7 @@ class SARRobot:
         print("[%s] t=%6.1f %-5s pos=(%6.2f,%6.2f) wp%-3d=(%6.2f,%6.2f) "
               "conf=%.2f depth=%6.2f blob=%.4f ratio=%.3f h_med=%5.2f h_low=%5.2f "
               "wid=%5.2f "
-              "why=%-18s block=%s%s tex_v=%.1f tex_s=%.1f"
+              "why=%-18s block=%s%s tex_v=%.1f tex_s=%.1f thick=%.3f"
               % (self.robot_id, now, state, self.x, self.y, self.target_idx, tx, ty,
                  v.get("conf", 0.0), v.get("depth", float('inf')),
                  v.get("blob", 0.0), v.get("ratio", 0.0),
@@ -1650,7 +1663,8 @@ class SARRobot:
                  v.get("width_m", float('nan')),
                  v.get("why", "-"), self._home_block,
                  " FP-ZONE" if self._victim_false_positive_zone() else "",
-                 v.get("tex_v", float('nan')), v.get("tex_s", float('nan'))))
+                 v.get("tex_v", float('nan')), v.get("tex_s", float('nan')),
+                 v.get("thick_m", float('nan'))))
 
     def _victim_false_positive_zone(self):
         """True near the origin mat or the partner robot — both trigger HSV

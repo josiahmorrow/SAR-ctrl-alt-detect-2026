@@ -349,3 +349,46 @@ Saturation spread separates them: printed denim texture varies in
 saturation (weave, fading, folds), flat-coloured moulded plastic varies only
 in shading (value). Gap 7.9 to 12.7 on medium. Before using it: collect the
 same on small and large (`snapS`) and medium seeds 1 and 2 (`snapM2`).
+
+### Texture is not a victim invariant (`snapS`, `thickS`, `thickM`)
+
+Small changes the picture. On small the largest denim-hue blob is often the
+victim's plain navy **shirt**, not the jeans (the faded jeans fall below the
+mask's saturation floor), and a plain shirt is as flat as the cart rim:
+victim frames on small read tex_s 3.2-21 (median 6.7). A texture gate would
+have rejected the 43.6 s true find. Rejected.
+
+Added telemetry `thick` (p75 over blob columns of run length x column depth
+/ focal, metres; distance-invariant). Cart rim on medium: 0.006-0.032 m in
+every frame. Victims: mostly 0.13-0.50 m, but close-range and climbing
+frames drop to 0.002-0.03 m on small, and the v3 approach on medium reads
+0.032-0.078. The conjunction thin-and-flat still catches some real-victim
+frames. Both cues are fitted to one object on one world (rule 7); the cart
+costs confidence, not finds. Parked.
+
+### Duplicate reports are scored False; odometry runaway causes them
+
+The supervisor skips victims already found when it checks a report, so a
+second report at a found victim is a **False** verdict. Small seed 1
+(`thickS` run 2): 3/4 found, both False reports were robot1 parked 0.27 m and
+0.6 m from victims robot2 had already found. Our own `_already_reported_nearby`
+check failed because odometry was wrong: robot2 reported victim 2 at odometry
+(2.87, -41.87), 40 m from the truth, after 160 s of recovery wiggle while
+high-centred at 25 deg on a victim's body (588 tilt lines). Encoder travel
+is integrated whatever the chassis attitude, so spinning wheels on a beached
+robot walk the estimate away.
+
+### Run-to-run determinism
+
+Same seed, same inputs: `snapS` and `thickS` small seed 0 are identical (1/4,
+99.4 m, 494 tilt lines). Medium seed 0 in `thickM` matches the original exp02
+run report for report up to 328 s, but `snapM` diverged after 165 s. So outcomes are
+near-deterministic with occasional chaotic divergence; means over seeds stay
+the measure. `detchk` reruns the committed 8d2ced9 controller on small seed 0
+(exp02 there: 3/4) to separate code effects from this.
+
+### Medium seed 0 ground truth (`thickM` run 1)
+
+Cart reports at true (2.41, 3.39) and (2.49, 3.05). v3 marker (-1.10, -4.39):
+report at (-1.10, -3.38) = 1.01 m, False; 40 s later at (-1.27, -3.48) =
+0.93 m, True. v1 (4.11, 0.45) never found.
