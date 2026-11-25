@@ -484,3 +484,20 @@ Remaining false reports on small are duplicates at found victims (v1 and v2
 lie 1.4 m apart; partner positions drift apart by more than the 1.0 m
 duplicate radius). Medium robot2 now spends most of the run trapped on
 sweep waypoints along x = 18 (timeouts, "written off" regions).
+
+### exp07 on large (`exp07L`, seeds 0, 1 @600 s)
+
+0/5 both runs, 21.4 m and 20.8 m travelled. Both robots end **inverted**
+(tilt 131 deg) inside 40 s: robot2 at t=5.3 s near the start (accelerometer
+spike 59 m/s^2 on contact, front IR had read 0.22 m half a second earlier),
+robot1 at t=35 s (spike 199 m/s^2, IR 0.21 m). Contact with large's rubble at
+cruise speed produces solver-scale impulses that flip the chassis; nothing
+after that can help. Next: exp09, slow down when the front IR sees a low
+obstacle (closing speed is what sets the impulse).
+
+### exp08 (queued): second look at a missed flyover estimate
+
+Medium exp07 s0: robot2 reached 1.5 m from v1's estimate, scanned, saw only
+a sliver of denim past the platform cart, retired the waypoint and never
+came back. exp08 queues one more look from the opposite side (1.2 m from
+the estimate, on a free cell) when a scan at an estimate finds nothing.
