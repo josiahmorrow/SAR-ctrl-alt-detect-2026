@@ -290,6 +290,12 @@ run_preflight(_robot.getWorldPath(), _robot.getName())
 
 # ── Webots controller ─────────────────────────────────────────────────────────
 
+# Mission length, seconds. The competition fixes it at 180; every behaviour
+# keyed to the mission clock derives from this one constant. SAR_MISSION_S
+# exists only for the development time curriculum (dev/tools/run_batch.py
+# --mission-s) and is never set in a judged run.
+MISSION_S = float(os.environ.get("SAR_MISSION_S", "180"))
+
 WHEEL_RADIUS = 0.043   # metres (Rosbot proto WHEEL_CYLINDER radius 0.043 — was
                        # 0.05, a 16% odometry scale error)
 AXLE_LENGTH  = 0.19    # metres
@@ -630,7 +636,8 @@ LIDAR_MAP_BEAMS   = 90     # beams sampled per update (of the full scan)
 # while unobserved flyover guesswork (measured IoU 0.057 on small_world) is
 # dropped. Both robots dump their learned grids; robot1 merges and writes.
 LEARNED_SAVE_EVERY_S  = 5.0    # cadence of learned-grid dumps to sim_logs
-LEARNED_WRITE_TIMES   = (172.0, 178.0)   # robot1 merges/writes at these times
+LEARNED_WRITE_TIMES   = (MISSION_S - 8.0, MISSION_S - 2.0)   # robot1 merges/writes
+                                         # (172 s and 178 s in the 180 s mission)
 # DISABLED (1.01 = unreachable) NOW THAT WE SHIP A BETTER FLYOVER MAP.
 # This gate let the learned map replace the flyover map once the robots had seen
 # 30% of the envelope. It earned its place while the flyover map was OURS and

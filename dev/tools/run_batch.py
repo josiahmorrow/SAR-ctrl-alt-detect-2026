@@ -83,7 +83,7 @@ WORLDS = {"small": "small_world.wbt",
           "medium": "medium_world.wbt",
           "large": "large_world.wbt"}
 
-FIELDS = ["tag", "world", "run", "victims_found", "victims_total", "overall",
+FIELDS = ["tag", "world", "run", "mission_s", "victims_found", "victims_total", "overall",
           "finding", "efficiency", "coordination", "extraction",
           "ratio", "time_score", "confidence", "avg_time_s",
           "dist_score", "dist_per_victim", "robots_contributing",
@@ -167,7 +167,10 @@ LOAD_TIMEOUT_S = 150   # world must have started its supervisor by now
 EXTRA_ENV = {}         # set from the command line (e.g. SAR_DEBUG_VISION)
 
 
-def run_one(world, tag, n, timeout_s=600, pristine=True):
+MISSION_S = 180       # --mission-s; anything but 180 uses the dev copies
+
+
+def run_one(world, tag, n, timeout_s=None, pristine=True):
     # pristine=False leaves sim_logs alone so a FOREIGN solution's own preflight
     # runs exactly as its author intended. Used to score another branch on the
     # official server without imposing our flyover pipeline on it.
@@ -178,7 +181,14 @@ def run_one(world, tag, n, timeout_s=600, pristine=True):
     log_path = os.path.join(log_dir, f"{world}_{n}.log")
     tee_dir = os.path.join(log_dir, f"{world}_{n}_tee")
     shutil.rmtree(tee_dir, ignore_errors=True)
-    wbt = os.path.join(REPO, "worlds", WORLDS[world])
+    if MISSION_S == 180:
+        wbt = os.path.join(REPO, "worlds", WORLDS[world])        # untouched
+    else:
+        wbt = os.path.join(REPO, "worlds", f"{world}_world_dev.wbt")
+        if not os.path.exists(wbt):
+            sys.exit("!! dev worlds missing: run dev/tools/make_dev_supervisor.py")
+    if timeout_s is None:
+        timeout_s = 300 + 3 * MISSION_S
     cmd = [WEBOTS, "--batch", "--mode=fast", "--minimize",
            "--stdout", "--stderr", wbt]
     # Give Webots a pty: redirected to a plain file it BLOCK-buffers stdout, so
@@ -195,6 +205,8 @@ def run_one(world, tag, n, timeout_s=600, pristine=True):
         live = open(log_path, "w", encoding="utf-8", errors="replace")
         env = dict(os.environ, PYTHONUTF8="1", PYTHONIOENCODING="utf-8",
                    PYTHONUNBUFFERED="1", SAR_TEE_DIR=tee_dir, **EXTRA_ENV,
+                   **({} if MISSION_S == 180 else
+                      {"SAR_MISSION_S": str(MISSION_S)}),
                    WEBOTS_HOME=os.path.normpath(os.path.join(
                        os.path.dirname(WEBOTS), "..", "..", "..")))
         proc = subprocess.Popen(
@@ -285,6 +297,7 @@ def run_one(world, tag, n, timeout_s=600, pristine=True):
     row = parse(txt)
     row.update(_truth_fields(sup))
     row.update({"tag": tag, "world": world, "run": n, "status": status,
+                "mission_s": MISSION_S,
                 "wall_clock_s": round(time.time() - t0, 1)})
     return row
 
@@ -392,7 +405,12 @@ def main():
     ap.add_argument("--debug-vision", action="store_true",
                     help="set SAR_DEBUG_VISION=1: per-robot pose + vision-gate "
                          "telemetry every 0.5 s (diagnosis runs only)")
+    ap.add_argument("--mission-s", type=int, default=180,
+                    help="mission length; 180 = untouched supervisor and worlds, "
+                         "anything else = time-curriculum dev copies")
     args = ap.parse_args()
+    global MISSION_S
+    MISSION_S = args.mission_s
     if args.debug_vision:
         EXTRA_ENV["SAR_DEBUG_VISION"] = "1"
 
