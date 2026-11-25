@@ -75,7 +75,10 @@ VENV_PY = (os.path.join(REPO, ".venv", "Scripts", "python.exe") if IS_WIN
 SOL = os.path.join(REPO, "controllers", "proposed_solution")
 # Run CSVs are committed (dev/eval/runs/<tag>.csv); bulky per-run logs are
 # git-ignored under dev/eval/runs/<tag>/.
-OUT_DIR = os.path.join(SOL, "dev", "eval", "runs")
+OUT_DIR = os.environ.get("SAR_OUT_DIR") or os.path.join(SOL, "dev", "eval", "runs")
+# Parallel envs (dev/tools/parallel_envs.ps1): several Webots instances, one per
+# environment copy. Then only this run's own process tree may be killed.
+PARALLEL = os.environ.get("SAR_PARALLEL") == "1"
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import make_pristine                                      # noqa: E402
 import warm_webots_cache                                  # noqa: E402
@@ -158,7 +161,14 @@ def _newest_marked(after_ts):
 
 def restore_pristine(world):
     # Hermetic start: sim_logs/ becomes the shipped preflight's snapshot.
-    make_pristine.restore(world)
+    # In a child process: importing the flyover pipelines costs ~0.5 GB of
+    # commit, which this long-lived batch process would otherwise hold for the
+    # whole mission (the mini's commit limit is tight; see post_comp_log.md).
+    subprocess.run([sys.executable, "-c",
+                    "import sys; sys.path.insert(0, %r); import make_pristine; "
+                    "make_pristine.restore(%r)"
+                    % (os.path.dirname(os.path.abspath(__file__)), world)],
+                   check=True)
 
 
 LOAD_TIMEOUT_S = 150   # world must have started its supervisor by now
@@ -267,8 +277,9 @@ def run_one(world, tag, n, timeout_s=None, pristine=True):
     if IS_WIN:
         subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
                        capture_output=True)
-        subprocess.run(["taskkill", "/F", "/T", "/IM", "webots-bin.exe"],
-                       capture_output=True)
+        if not PARALLEL:
+            subprocess.run(["taskkill", "/F", "/T", "/IM", "webots-bin.exe"],
+                           capture_output=True)
     else:
         try:
             os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
@@ -367,6 +378,8 @@ def _assert_exclusive():
     deliverables and produce meaningless scores (observed 30/07: a run reported
     0.412 while colliding with a queued batch).
     """
+    if IS_WIN and PARALLEL:
+        return
     if IS_WIN:
         out = subprocess.run(
             ["tasklist", "/FI", "IMAGENAME eq webots-bin.exe", "/NH"],

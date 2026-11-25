@@ -141,3 +141,73 @@ outside the camera's view while passing or scanning (medium: 1). One false
 report from a floor-level decoy. The final-approach oscillation recorded in
 Phase 1 does not appear in these runs; small's only HOME episode is the
 t=177 one.
+
+## Time curriculum
+
+Rungs: 600, 420, 300, 240, 180 s. Dev runs use `--mission-s N` (dev
+supervisor and dev worlds, one line different from the originals each); only
+180 s on the originals counts. Three environment copies run one world each in
+parallel (`dev/tools/parallel_envs.ps1`); missions are lockstep-deterministic,
+so this only changes wall time (~1 sim-s per wall-s with telemetry on).
+
+### Baseline at 600 s (`base600`, controller = phase1-submitted + harness flags)
+
+| World | Victims | Find times (s) | Notes |
+|---|---|---|---|
+| small | 1/4 | 182.0 | robot2 spent all 600 s outside the house, never through the front door 2 m from its start; robot1 found v2 then sat high-centred at 25 deg (recovery wiggle) for ~400 s |
+| medium | 3/4 (+1 false report) | 36.9, 145.7, 444.0 | same first two finds as at 180 s; v3 at 444 s |
+| large | 0/5 | - | 18 m travelled in 600 s: robot2 stuck tilted at (0.74, -2.55) from t=10 s; robot1 on the forklift's forks at (4.05, 6.12) from t=30 s |
+
+Even with 600 s, small finds one victim, and 2 s after the real deadline.
+More time does not fix entry or beaching: both failures are structural, not a
+time budget. (A first attempt to run the three worlds in parallel ran the
+mini out of commit memory - 4.5 GB fixed paging file - and crashed the large
+and medium controllers; those runs were discarded and rerun sequentially.)
+
+### Final approach (homing), from `dev/tools/homing_episodes.py`
+
+Across `diag` and `base600`: 11 homing episodes, 5 reported (1 of them the
+medium floor-decoy false report), 6 aborted after 6.6-12.3 s, ending 2.1-2.7 m
+from the nearest marker. Homing starts as far as 3.9 m out at
+`APPROACH_SPEED` x `max(0.4, depth/2)` (about 0.27 m/s, falling to 0.11 m/s),
+so an approach from 4 m can exceed `APPROACH_TIMEOUT_S` = 12 s and abort
+(small 160.8-173.1 s), then re-home after the 8 s cooldown. Small's only find
+came 21 s after first sighting.
+
+## Stage 2 experiments
+
+Rung 600 s unless stated. "base600" is the comparison row.
+
+### exp01 - hard walls first (`HARD_WALL_FIRST = True`) - REVERTED
+
+*Hypothesis.* Small's robots cannot enter rooms because the planner treats a
+wall cell as merely expensive (cost 30), so a route through a wall beats any
+doorway more than ~3 m out of the way. Blocking known wall cells (with the
+existing soft fallback when no hard route exists) should route through doors.
+
+*Change.* One flag. Phase 1 had measured it as roughly neutral (0.468 vs 0.472).
+
+| World | base600 | exp01 |
+|---|---|---|
+| small | 1/4 (182 s) | 0/4 |
+| medium | 3/4, 1 false (36.9, 145.7, 444.0) | 2/4, 1 false (36.9, 145.7) |
+| large | 0/5 | (running) |
+
+*Result.* Worse on both deterministic worlds; reverted. The telemetry shows
+why it could not have worked as hoped: robot2 still spent all 600 s outside,
+working sweep points along y = -6, and the front door stayed shut in its map
+(see exp02). Small's robot1 found v1/v2's room again but climbed onto the
+victim during the marker-offset reposition, tilted to 25 deg, and stayed there
+in the HOME state for ~400 s, 0.22 m from v1's marker, without reporting
+(tilt recovery pre-empts the reposition deadline).
+
+### exp02 - do not paint the partner robot as a wall
+
+*Hypothesis.* robot2's grid has a wall across small's front doorway, painted
+when robot1 drove through it in robot2's lidar view at t~4-10 s. Erasing only
+happens along rays shorter than 3 m, and robot2 never returns within 3 m of
+the door, so the phantom wall persists. With wall cost 30 per cell and 3x3
+painting, crossing it costs as much as a ~9 m detour.
+
+*Change.* Lidar hits within 0.7 m of the partner's last broadcast position
+(start position before the first broadcast) are not painted.
