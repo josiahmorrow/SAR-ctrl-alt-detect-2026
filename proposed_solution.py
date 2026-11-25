@@ -607,7 +607,13 @@ ESCAPE_S         = 2.5    # duration of an escape maneuver (reverse + turn)
 # cost ring (inflation only). The lidar learner (below) then converges the
 # grid toward truth from both sides while driving.
 NAV_RES           = 0.10   # planning-grid resolution (m/px)
-STARTUP_SPIN_S    = 3.5    # 360° lidar spin before the first route commits:
+# Development-only trajectory seed (SAR_SEED, unset in judged runs = 0): each
+# step lengthens the startup spin by 50 ms, which starts the robot on a
+# slightly different heading. The worlds are deterministic but the robots'
+# paths are chaotic, so one run measures one trajectory; judging a change on
+# the mean over a few seeds measures the controller.
+_SEED_S           = 0.05 * float(os.environ.get("SAR_SEED", "0") or 0)
+STARTUP_SPIN_S    = 3.5 + _SEED_S  # 360° lidar spin before the first route commits:
                            # paints the foyer's REAL walls (5 m lidar horizon)
                            # into the grid so the initial route exits through a
                            # real doorway instead of darting at a hidden wall

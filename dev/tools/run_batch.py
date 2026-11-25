@@ -86,7 +86,7 @@ WORLDS = {"small": "small_world.wbt",
           "medium": "medium_world.wbt",
           "large": "large_world.wbt"}
 
-FIELDS = ["tag", "world", "run", "mission_s", "victims_found", "victims_total", "overall",
+FIELDS = ["tag", "world", "run", "seed", "mission_s", "victims_found", "victims_total", "overall",
           "finding", "efficiency", "coordination", "extraction",
           "ratio", "time_score", "confidence", "avg_time_s",
           "dist_score", "dist_per_victim", "robots_contributing",
@@ -309,6 +309,7 @@ def run_one(world, tag, n, timeout_s=None, pristine=True):
     row.update(_truth_fields(sup))
     row.update({"tag": tag, "world": world, "run": n, "status": status,
                 "mission_s": MISSION_S,
+                "seed": EXTRA_ENV.get("SAR_SEED", ""),
                 "wall_clock_s": round(time.time() - t0, 1)})
     return row
 
@@ -418,6 +419,9 @@ def main():
     ap.add_argument("--debug-vision", action="store_true",
                     help="set SAR_DEBUG_VISION=1: per-robot pose + vision-gate "
                          "telemetry every 0.5 s (diagnosis runs only)")
+    ap.add_argument("--seeds", default="",
+                    help="comma list of trajectory seeds (SAR_SEED); each run "
+                         "uses the next seed in turn. Empty = no seed.")
     ap.add_argument("--mission-s", type=int, default=180,
                     help="mission length; 180 = untouched supervisor and worlds, "
                          "anything else = time-curriculum dev copies")
@@ -438,7 +442,10 @@ def main():
         if new:
             w.writeheader()
         for world in worlds:
+            seeds = [s for s in args.seeds.split(",") if s != ""]
             for n in range(1, args.runs + 1):
+                if seeds:
+                    EXTRA_ENV["SAR_SEED"] = seeds[(n - 1) % len(seeds)]
                 for attempt in range(3):
                     row = run_one(world, args.tag, n,
                                   pristine=not args.no_pristine)

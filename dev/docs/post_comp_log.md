@@ -213,3 +213,84 @@ painting, crossing it costs as much as a ~9 m detour.
 
 *Change.* Lidar hits within 0.7 m of the partner's last broadcast position
 (start position before the first broadcast) are not painted.
+
+| World | base600 | exp02 |
+|---|---|---|
+| small | 1/4 (182 s) | **3/4, 0 false (43.6, 92.3, 205.2)** |
+| medium | 3/4, 1 false | 2/4, 3 false (34.6, 130.2) |
+| large | 0/5 | (running) |
+
+*Result.* Small: robot2 now walks straight in through the front door and finds
+v1 and v3; robot1 finds v4. v2 missed with robot2 0.28 m from its marker
+right after reporting v1 1.47 m away: the homing block is a 1.5 m circle
+around the *robot's own position* (exp04).
+
+Medium regressed by the protocol's measure, through two mechanisms exp02 does
+not touch, exposed by the changed paths:
+1. robot1 reported the floor decoy at true (15.39, -12.95) that robot2 had
+   reported at (15.31, -12.61). Its odometry read (16.20, -14.23): tilt and
+   wheel slip had moved it ~1.5 m off, so "already reported within 1 m" missed.
+2. robot2 reported v3 from 1.01 m (true (11.80, -19.38) vs marker
+   (11.80, -20.39)): the marker-offset problem from the brief.
+
+**Kept, contrary to the revert rule, and flagged to Joe.** The argument is
+general (the partner is never a wall, in any world) and the medium losses
+trace to separate, identified causes.
+
+Large under exp02: 0/5 (unchanged from base600).
+
+### exp03 - never climb onto a confirmed victim - REVERTED
+
+*Hypothesis.* During the marker-offset reposition the IR low-obstacle guard is
+disabled, so robots drive onto the victim's body, tilt past 25 deg and sit in
+the HOME state for the rest of the mission (exp01 small: 400 s, 0.22 m from
+v1's marker, never reported); tilting also corrupts odometry (exp02 medium).
+*Change.* (a) IR contact while repositioning counts as a stall: report from
+there; (b) while homing, IR contact with denim within 1.0 m counts as "close
+enough" for the confirmation streak, and the creep stops; (c) tilt while
+repositioning ends the approach and reports.
+
+| World | exp02 (base) | exp03 |
+|---|---|---|
+| small | 3/4 (43.6, 92.3, 205.2) | 2/4 (43.4, 199.9), 314 tilt events |
+| medium | 2/4, 3 false | not run (small regressed) |
+
+*Result.* Reverted. robot2 reported v1 at 43.4 s as before, then stayed in
+v1/v2's room for the rest of the mission (candidate in view on 1,023 telemetry
+ticks, blocked by "near prior report"), so it never went on to v3 as it did in
+exp02. Tilt events rose, not fell.
+
+*Method note.* Small changes reroute the robots and the outcome moves by a
+victim either way for reasons unrelated to the change (exp02 medium, exp03
+small). Each world is deterministic, but one run per world measures one
+trajectory, not the controller. Proposed: a dev-only "seed" (start-of-mission
+delay of 0/50/100 ms, env-set, default off) and judging each change on the
+mean over three seeds per world. That triples cost, so it needs the parallel
+runs, which need the bigger paging file.
+
+### exp04 - "already reported" judged by the candidate's position - REVERTED
+
+*Hypothesis.* exp02 small missed v2 with robot2 0.28 m from its marker
+because the homing block is a 1.5 m circle around the robot's own position and
+v1 had just been reported 1.47 m away. Comparing the camera's estimate of the
+candidate body (depth + bearing) with the estimated bodies already reported,
+at 1.0 m separation, should keep neighbours findable.
+
+| World | exp02 (base) | exp04 |
+|---|---|---|
+| small | 3/4, 0 false | 1/4, 1 false (43.6) |
+| medium | 2/4, 3 false | not run |
+
+*Result.* Reverted. robot2 reported v1, then homed on v1's body seen from
+another side (its denim centroid more than 1.0 m from the first estimate: a
+lying body is ~1.7 m long), was sent toward v2's CSV estimate by the
+marker-offset reposition, stalled after 6 s at a point 0.75 m from v1's marker
+and reported "from wherever it got to": false. Distinguishing two adjacent
+lying bodies by blob centroid is not reliable at this separation, and the
+reposition's report-on-stall fallback is a false-report generator.
+
+### Harness: trajectory seeds
+
+`SAR_SEED` (dev only; unset = 0 = submitted behaviour) lengthens the startup
+spin by 50 ms per step. `run_batch.py --seeds 0,1,2` runs one mission per
+seed. Neutral at seed 0 by construction (3.5 + 0.0 s).

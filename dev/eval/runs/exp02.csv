@@ -1,3 +1,4 @@
 tag,world,run,mission_s,victims_found,victims_total,overall,finding,efficiency,coordination,extraction,ratio,time_score,confidence,avg_time_s,dist_score,dist_per_victim,robots_contributing,map_score,victim_est_score,avg_loc_err_m,total_distance_m,messages,coverage_pct,explore_events,abandoned,tilt_events,found_times,reports,false_reports,wall_clock_s,status
 exp02,small,1,600,3,4,0.628,0.703,0.026,1.0,0.642,0.75,0.368,0.99,113.7,0.016,103.0,2,0.56,0.724,0.66,308.9,3,70,0,15,94,43.6 92.3 205.2,3,0,776.1,ok
 exp02,medium,1,600,2,4,0.407,0.486,0.019,0.5,0.451,0.5,0.542,0.415,82.4,0.002,160.7,1,0.262,0.639,0.95,321.4,5,59,0,13,47,34.6 130.2,5,3,719.9,ok
+exp02,large,1,600,0,5,0.141,0.0,0.0,0.0,0.469,0.0,0.0,0.0,,0.0,,0,0.776,0.162,4.95,21.8,0,8,0,0,2,,0,0,467.0,ok
