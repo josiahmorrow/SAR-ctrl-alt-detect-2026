@@ -421,7 +421,7 @@ ASSIST_SKIP_FAILED  = True   # skip targets either robot abandoned (A/B control)
 # Our painted map is noisy — 3x3 patches at every lidar endpoint — so hard
 # blocking also seals narrow doorways the robot could otherwise squeeze
 # through. The finite cost acts as a safety valve. Kept as a flag.
-HARD_WALL_FIRST     = False
+HARD_WALL_FIRST     = False   # exp01 (25/11) re-measured: worse, reverted
 # A robot that cannot reach one target usually cannot reach its NEIGHBOURS
 # either — they are behind the same obstruction. Measured on medium 30/07:
 # robot1 reached (10.3,-15) at t=60 and then spent 110 s oscillating within a
@@ -627,6 +627,13 @@ LIDAR_MAP_EVERY_S = 0.3    # how often the scan is folded into the grid
 LIDAR_PAINT_MAX_M = 5.0    # trust hits nearer than this as real walls
 LIDAR_ERASE_MAX_M = 3.0    # erase phantom walls along the ray up to this
 LIDAR_MAP_BEAMS   = 90     # beams sampled per update (of the full scan)
+# The partner robot is a moving obstacle, not a wall. Painting it sealed the
+# front doorway in small_world (exp01, 25/11): robot1 drove through the door
+# in robot2's view, robot2's grid kept a wall there, and robot2 never again
+# passed within lidar-erase range, so it spent 600 s outside. Hits within
+# this radius of the partner's last broadcast position are not painted
+# (broadcasts are 1 s apart at <=0.5 m/s, plus the chassis radius).
+PARTNER_MASK_M    = 0.7
 
 # ── End-of-mission learned-map deliverable ──────────────────────────────────
 # The marking supervisor reads map_estimate.png in save_logs() AT MISSION END
@@ -2110,6 +2117,11 @@ class SARRobot:
         wall, N  = self._nav_wall, self._nav_N
         seen     = self._nav_seen
         changed  = painted = False
+        other = "robot2" if self.robot_id == "robot1" else "robot1"
+        if self._partner_x is not None:
+            pxy = (self._partner_x, self._partner_y)
+        else:
+            pxy = START_POS.get(other)        # before the first broadcast
         step     = max(1, n_beams // LIDAR_MAP_BEAMS)
         for i in range(0, n_beams, step):
             r   = ranges[i]
@@ -2133,7 +2145,11 @@ class SARRobot:
             # than the doorway detour (single cells were crossable too cheaply:
             # the 18:02 run's robots kept nosing the same wall).
             if hit < LIDAR_PAINT_MAX_M:
-                r0, c0 = self._w2c(self.x + hit * ca, self.y + hit * sa)
+                hx, hy = self.x + hit * ca, self.y + hit * sa
+                if pxy is not None and math.hypot(hx - pxy[0],
+                                                  hy - pxy[1]) < PARTNER_MASK_M:
+                    continue                      # the partner, not a wall
+                r0, c0 = self._w2c(hx, hy)
                 for dr in (-1, 0, 1):
                     for dc in (-1, 0, 1):
                         rr, cc = r0 + dr, c0 + dc

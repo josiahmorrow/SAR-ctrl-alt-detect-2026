@@ -191,9 +191,11 @@ existing soft fallback when no hard route exists) should route through doors.
 |---|---|---|
 | small | 1/4 (182 s) | 0/4 |
 | medium | 3/4, 1 false (36.9, 145.7, 444.0) | 2/4, 1 false (36.9, 145.7) |
-| large | 0/5 | (running) |
+| large | 0/5 | **1/5 (58.5 s)** |
 
-*Result.* Worse on both deterministic worlds; reverted. The telemetry shows
+*Result.* Worse on both small and medium; reverted per the protocol. Large
+improved (a different first route avoided the early beaching), which is worth
+remembering when the planner is revisited. The telemetry shows
 why it could not have worked as hoped: robot2 still spent all 600 s outside,
 working sweep points along y = -6, and the front door stayed shut in its map
 (see exp02). Small's robot1 found v1/v2's room again but climbed onto the
