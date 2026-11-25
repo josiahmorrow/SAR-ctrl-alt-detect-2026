@@ -1,0 +1,4 @@
+tag,world,run,victims_found,victims_total,overall,finding,efficiency,coordination,extraction,ratio,time_score,confidence,avg_time_s,dist_score,dist_per_victim,robots_contributing,map_score,victim_est_score,avg_loc_err_m,total_distance_m,messages,coverage_pct,explore_events,abandoned,tilt_events,found_times,reports,false_reports,wall_clock_s,status
+diag,small,1,0,4,0.193,0.0,0.0,0.0,0.642,0.0,0.0,0.0,,0.0,,0,0.56,0.724,0.66,90.0,0,43,0,1,1,,0,0,276.3,ok
+diag,medium,1,2,4,0.466,0.554,0.23,0.5,0.451,0.5,0.493,0.67,91.3,0.092,59.7,1,0.262,0.639,0.95,119.4,3,36,0,1,6,36.9 145.7,3,1,335.5,ok
+diag,large,1,0,5,0.141,0.0,0.0,0.0,0.469,0.0,0.0,0.0,,0.0,,0,0.776,0.162,4.95,12.1,0,8,0,0,2,,0,0,188.0,ok

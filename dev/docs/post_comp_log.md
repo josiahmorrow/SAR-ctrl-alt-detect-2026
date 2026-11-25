@@ -62,11 +62,41 @@ Ruled out so far:
 * world files: `large_world.wbt` is byte-identical (same blob) to the team copy;
   the earlier "392 insertions" diff was CRLF line endings.
 
-Leading hypothesis, not yet tested: decoded pixel values differ between the
-macOS (AVFoundation) and Windows (FFmpeg) OpenCV backends (YUV to RGB matrix or
-range), moving colours across the HSV thresholds both detectors use. This is
-also a generalisation weakness in its own right: the judges' platform was never
-known.
+* container timing: `dev/tools/mp4_timing.py` shows a clean constant 62.5 fps
+  (one stts entry, 160/10000 s per sample, no edit offset), so no backend can
+  legitimately report another rate.
+
+The wall-map path agrees across platforms (map frame `world_min_x` -8.2820 m on
+macOS vs -8.2775 m here); the victim path does not.
+
+### The victim extraction is chaotic in the pixel values
+
+`dev/tools/imu_detect_probe.py --perturb` reruns flyover_extraction's
+IMU-assisted victim path with every decoded pixel shifted by one grey level,
+about the size of an ordinary cross-platform YUV to BGR rounding difference.
+Distance from each ground-truth victim to its nearest estimate:
+
+| World | -1 | as decoded | +1 |
+|---|---|---|---|
+| small | 1.43 0.75 0.82 5.83 | 0.25 0.77 0.80 5.84 | 0.21 1.25 0.86 5.79 |
+| medium | 7.17 1.27 0.52 12.58 | 6.41 1.43 0.62 12.57 | 6.40 0.30 1.05 12.56 |
+| large | 3.16 0.98 5.79 1.64 3.45 | 3.17 0.93 5.78 0.77 3.43 | 1.53 0.77 7.32 1.67 4.28 |
+
+(These are the IMU estimates before scout augmentation and submission
+selection, which then add further branch points.)
+
+One grey level moves single estimates by up to 1.6 m. The submitted
+0.30-0.61 m accuracy was one draw from this distribution, made on one decoder,
+with constants fitted on that same draw. It is not reproducible on another
+machine, so it cannot have been expected on the judges' machine either: a
+concrete mechanism behind the organisers' "lower on generalisation" feedback.
+
+**Consequence for this project.** Re-tuning the extraction until Windows
+reproduces the macOS numbers would be fitting to these three videos a second
+time (rule 7). The Windows output is taken as the honest baseline. The find
+rate has to come from search and final approach that do not need sub-metre
+estimates. Any extraction change is judged offline on the mean over the
+-1/0/+1 perturbations, not on a single decode.
 
 ### Harness changes made to get here (no controller change)
 
@@ -82,3 +112,32 @@ known.
 * `make_pristine.py`: per-world flyover snapshot produced by the controller's own
   `_analyse_both` (lifted with `ast`), replacing the old cache that held only
   our own extraction, not the shipped hybrid.
+
+### Per-victim diagnosis (run `diag`, DEBUG_VISION telemetry, 25/11)
+
+Telemetry is behaviour-neutral: `diag` reproduced the baseline exactly (small
+0.193, medium 0.466, large 0.141). Odometry tracks agree with the supervisor's
+true positions to within centimetres (medium robot2 at its t=71 report: odometry
+(15.32, -12.61), truth (15.32, -12.61) in the mat frame). Tracks and closest
+approaches from `dev/tools/trajectory_plot.py`; plots in the git-ignored
+`dev/eval/runs/diag/*_traj.png`.
+
+| World | Victim | Outcome | Closest approach | Cause |
+|---|---|---|---|---|
+| small | v1, v2 (SW room) | missed | robot2 0.98 m / 1.05 m, t=123, *through the exterior wall* | robot2 never entered the house: it pressed against the outside of the room's wall for the whole mission |
+| small | v2 | missed | robot1 0.63 m, HOME, t=177.7 | robot1 reached the room by partner assist with 3 s left |
+| small | v3 (NW room) | missed | robot1 3.43 m, t=45 | could not find the room's door; 40 s timeout, requeued, skipped |
+| small | v4 (NE room) | missed | robot1 2.14 m, t=118 | stopped at the room wall; timed out |
+| medium | v4 | found t=36.9 | robot2 0.53 m, HOME | homing works when the victim is in view |
+| medium | v2 | found t=145.7 | robot2 | partner assist |
+| medium | v1 | missed | robot2 0.79 m, DRIVE, t=96.8 | scanned 1.7 m away at t=92 and saw no denim; then drove past with the victim beside it, outside the forward camera's view |
+| medium | (false report) | t=71.2 | 3.4 m from v1 | blue object at floor level (median denim height 0.08 m) passed every gate once within 0.72 m |
+| medium | v3 | missed | robot1 5.4 m; robot2 2.46 m | robot1 beached on a low obstacle (tilt 13-25 deg) at (13, -14) from t~80 to t~127, 6 m short of its target |
+| large | all five | missed | best 2.0 m (robot1, t=12) | both robots beached on sub-lidar rubble within ~10 s of leaving the mat; 7-9 m travelled each |
+
+Causes ranked by victims lost: **cannot get into the room or building
+(small: 4)**, **beached on low obstacles (large: 5, medium: 1)**, victim
+outside the camera's view while passing or scanning (medium: 1). One false
+report from a floor-level decoy. The final-approach oscillation recorded in
+Phase 1 does not appear in these runs; small's only HOME episode is the
+t=177 one.

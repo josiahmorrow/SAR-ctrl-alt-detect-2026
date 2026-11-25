@@ -376,7 +376,9 @@ REPOSITION_TIMEOUT_S = 6.0  # give up and report from wherever we got to
 # ── Vision telemetry ────────────────────────────────────────────────────────
 # Diagnostic only: prints why the detection gate did or did not open. Costs one
 # extra CV pass every DEBUG_VISION_EVERY_S. SET False BEFORE SUBMISSION.
-DEBUG_VISION         = False   # SUBMISSION SETTING. True for development runs:
+DEBUG_VISION         = os.environ.get("SAR_DEBUG_VISION") == "1"
+                               # Off unless the dev harness sets the env var
+                               # (run_batch.py --debug-vision). True for development runs:
                                # prints per-tick vision telemetry (costs an
                                # extra CV pass every DEBUG_VISION_EVERY_S).
 DEBUG_VISION_EVERY_S = 0.5
