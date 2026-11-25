@@ -388,6 +388,8 @@ DEBUG_VISION         = os.environ.get("SAR_DEBUG_VISION") == "1"
                                # prints per-tick vision telemetry (costs an
                                # extra CV pass every DEBUG_VISION_EVERY_S).
 DEBUG_VISION_EVERY_S = 0.5
+# Dev only: when set, candidate frames are saved here (decoy inspection).
+SNAP_DIR             = os.environ.get("SAR_SNAP_DIR") or None
 
 # ── Route planning: world-agnostic ──────────────────────────────────────────
 # No world-specific coordinates here — small/medium/large/basic_example_sar
@@ -1498,6 +1500,14 @@ class SARRobot:
         if blob_frac < DENIM_MIN_COMPONENT_FRAC:
             return self._vision_reject("denim-blob-small", blob=blob_frac)
         blob = (labels == best).astype(np.uint8)
+        # Texture of the blob (telemetry only): denim fabric is textured,
+        # moulded plastic is flat-shaded. Std of V and S inside the blob.
+        try:
+            _bm = blob.astype(bool)
+            tex_v = float(np.std(hsv[:, :, 2][_bm]))
+            tex_s = float(np.std(hsv[:, :, 1][_bm]))
+        except Exception:
+            tex_v = tex_s = float('nan')
 
         ratio = cv2.countNonZero(mask) / (w * h)
         if ratio <= 0.04:
@@ -1587,7 +1597,18 @@ class SARRobot:
             except Exception as exc:                      # never crash the mission
                 self._last_vision["why"] = "depth-error:%s" % exc
 
+        if SNAP_DIR and self.robot.getTime() >= getattr(self, "_snap_next", 0.0):
+            self._snap_next = self.robot.getTime() + 1.0
+            try:
+                os.makedirs(SNAP_DIR, exist_ok=True)
+                stem = os.path.join(SNAP_DIR, "%s_%06.1f_%.2f_%.2f" % (
+                    self.robot_id, self.robot.getTime(), self.x, self.y))
+                cv2.imwrite(stem + ".png", bgr)
+                cv2.imwrite(stem + "_blob.png", blob * 255)
+            except Exception:
+                pass
         self._last_vision = {"why": "candidate", "conf": base_conf,
+                             "tex_v": tex_v, "tex_s": tex_s,
                              "depth": min_depth, "blob": blob_frac,
                              "ratio": ratio, "med_h": med_h, "low_h": low_h,
                              "width_m": width_m}
@@ -1621,14 +1642,15 @@ class SARRobot:
         print("[%s] t=%6.1f %-5s pos=(%6.2f,%6.2f) wp%-3d=(%6.2f,%6.2f) "
               "conf=%.2f depth=%6.2f blob=%.4f ratio=%.3f h_med=%5.2f h_low=%5.2f "
               "wid=%5.2f "
-              "why=%-18s block=%s%s"
+              "why=%-18s block=%s%s tex_v=%.1f tex_s=%.1f"
               % (self.robot_id, now, state, self.x, self.y, self.target_idx, tx, ty,
                  v.get("conf", 0.0), v.get("depth", float('inf')),
                  v.get("blob", 0.0), v.get("ratio", 0.0),
                  v.get("med_h", float('nan')), v.get("low_h", float('nan')),
                  v.get("width_m", float('nan')),
                  v.get("why", "-"), self._home_block,
-                 " FP-ZONE" if self._victim_false_positive_zone() else ""))
+                 " FP-ZONE" if self._victim_false_positive_zone() else "",
+                 v.get("tex_v", float('nan')), v.get("tex_s", float('nan'))))
 
     def _victim_false_positive_zone(self):
         """True near the origin mat or the partner robot — both trigger HSV

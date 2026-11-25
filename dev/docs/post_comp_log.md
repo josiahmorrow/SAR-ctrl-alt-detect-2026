@@ -294,3 +294,58 @@ reposition's report-on-stall fallback is a false-report generator.
 `SAR_SEED` (dev only; unset = 0 = submitted behaviour) lengthens the startup
 spin by 50 ms per step. `run_batch.py --seeds 0,1,2` runs one mission per
 seed. Neutral at seed 0 by construction (3.5 + 0.0 s).
+
+### exp02 across seeds (`exp02s`; seed 0 = the original exp02 run)
+
+| World | seed 0 | seed 1 | seed 2 | mean found | mean false |
+|---|---|---|---|---|---|
+| small | 3/4, 0 false (43.6, 92.3, 205.2) | 2/4, 1 false by 450 s (physics stall, aborted) | 2/4, 0 false (33.9, 492.6) | 2.33 | 0.33 |
+| medium | 2/4, 3 false | 1/4, 1 false | 2/4, 4 false | 1.67 | 2.67 |
+
+Every medium run reports the same decoy: true robot position (15.24-15.40,
+-11.84 to -12.95), next to two blue `PlasticCrate`s (0.6 x 0.4 x 0.3 m) and two
+`PlatformCart`s. Median denim height 0.08 m and growing apparent area as the
+robot closes in let it through every gate. The second false-report site is
+1.0-1.3 m north of v3's marker, where pipes and boxes stop the robot short of
+the body (marker-offset problem). base600 medium seeds 1 and 2 are running
+for a fair comparison (mask radius 0 = Phase 1 behaviour).
+
+A physics slowdown (~0.07 sim-s per wall-s) hit small seed 1 at t=450 s;
+the run was stopped. It costs wall time only, never sim outcome.
+
+### Fair comparison on medium (`base600s`: Phase 1 behaviour, seeds 1 and 2)
+
+| medium @600 s | seed 0 | seed 1 | seed 2 | mean found | mean false |
+|---|---|---|---|---|---|
+| base600 (no partner mask) | 3/4, 1 false | 1/4, 1 false | 1/4, 2 false | 1.67 | 1.33 |
+| exp02 (partner mask) | 2/4, 3 false | 1/4, 1 false | 2/4, 4 false | 1.67 | 2.67 |
+
+Neutral on medium finds; the extra false reports are more visits to the crate
+decoy. Small: base600 seed 0 found 1, exp02 never fewer than 2 in three seeds.
+exp02 stays. The base600 seed-0 medium result (3/4) was the lucky draw.
+
+### Decoy inspection (`snapM`: exp02 + texture/snapshot telemetry, medium seed 0)
+
+Telemetry-only patch (`SAR_SNAP_DIR` saves the camera frame and denim blob
+mask once per second while a candidate is in view; telemetry line gains
+`tex_v`/`tex_s`, the std of HSV value and saturation inside the denim blob).
+Neutrality: identical to exp02 seed 0 through t=165 s (reports 34.6 TRUE,
+~78 false, 130.2 TRUE, ~165 false); diverges after that (no 328 s false
+report), 2/4 found, 2 false.
+
+The camera frame at the 78.6 s false report shows the decoy is the
+**PlatformCart**: its blue plastic rim is the "denim" blob (a thin band on
+the floor, beige deck inside). Per-site candidate texture:
+
+| Site | frames | tex_s median [range] | tex_v median |
+|---|---|---|---|
+| real victim, robot2 t=23-31 | 16 | 15.6 [15.2-16.4] | 12.4 |
+| real victim, robot2 t=114-131 | 33 | 15.0 [12.7-15.9] | 9.8 |
+| real victim (not reported), robot2 t=274-283 | 16 | 23.9 [20.9-27.0] | 14.4 |
+| cart decoy, robot2 t=79-82 | 4 | 6.0 [4.9-6.3] | 10.8 |
+| cart/crate site, robot1 t=140-159 | 15 | 4.4-7.9 | 4.8-13.1 |
+
+Saturation spread separates them: printed denim texture varies in
+saturation (weave, fading, folds), flat-coloured moulded plastic varies only
+in shading (value). Gap 7.9 to 12.7 on medium. Before using it: collect the
+same on small and large (`snapS`) and medium seeds 1 and 2 (`snapM2`).

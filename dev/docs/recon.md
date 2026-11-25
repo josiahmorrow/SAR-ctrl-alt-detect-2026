@@ -15,3 +15,15 @@ Searches run: GitHub API forks of both competition repos; repository search for
 the competition; web searches for the competition name with GitHub, ROSbot and
 Webots. Still to do inside the timebox: Webots ROSbot navigation examples, and
 small-robot final-approach / doorway-finding techniques.
+
+### Second pass (25/11, afternoon): mapping around moving objects
+
+| Source | Idea | Licence | Addresses |
+|---|---|---|---|
+| [arXiv 2609.30495, Memory-Aware Multi-Sensor Perception](https://arxiv.org/pdf/2609.30495) | Plain ray-traced log-odds grids leave stale occupied cells after a dynamic obstacle moves; they mask a circle around each tracked dynamic obstacle and clear vacated cells. | Paper; idea only | Exactly the partner-as-wall failure. Our exp02 (mask a radius around the partner's broadcast position) is the same idea, arrived at from our own telemetry before reading this. |
+| [arXiv 2007.10743, stereo dynamic obstacle tracking](https://arxiv.org/pdf/2007.10743) | Separate static / dynamic / uncertain costmaps; raytracing clears wrongly occupied static cells; uncertain obstacles get short-lived costs. | Paper; idea only | The binary, never-decaying wall grid (phantom walls from bodies, doors, robots). Supports the log-odds + decay design in `nav_rewrite_proposal.md`. |
+| [ManuelZ/slam_algorithms](https://github.com/ManuelZ/slam_algorithms), [aagarwal32/usf-mobile-robotics](https://github.com/aagarwal32/usf-mobile-robotics) | Textbook probabilistic occupancy grid (Thrun, *Probabilistic Robotics*) in Python, the second one in Webots. | Not checked; ideas only, nothing adopted | Confirms the standard approach is tractable in a Python Webots controller. |
+
+Recon timebox closed. Conclusion: nothing in the public Phase 1 repos beats a
+textbook occupancy grid with ray-cast clearing and hard, inflated obstacles,
+which is what the rewrite proposal describes.
