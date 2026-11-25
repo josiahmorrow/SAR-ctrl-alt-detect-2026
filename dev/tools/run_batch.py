@@ -78,6 +78,7 @@ SOL = os.path.join(REPO, "controllers", "proposed_solution")
 OUT_DIR = os.path.join(SOL, "dev", "eval", "runs")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import make_pristine                                      # noqa: E402
+import warm_webots_cache                                  # noqa: E402
 WORLDS = {"small": "small_world.wbt",
           "medium": "medium_world.wbt",
           "large": "large_world.wbt"}
@@ -160,6 +161,12 @@ def restore_pristine(world):
     make_pristine.restore(world)
 
 
+LOAD_TIMEOUT_S = 150   # world must have started its supervisor by now
+
+
+EXTRA_ENV = {}         # set from the command line (e.g. SAR_DEBUG_VISION)
+
+
 def run_one(world, tag, n, timeout_s=600, pristine=True):
     # pristine=False leaves sim_logs alone so a FOREIGN solution's own preflight
     # runs exactly as its author intended. Used to score another branch on the
@@ -187,7 +194,7 @@ def run_one(world, tag, n, timeout_s=600, pristine=True):
         master = None
         live = open(log_path, "w", encoding="utf-8", errors="replace")
         env = dict(os.environ, PYTHONUTF8="1", PYTHONIOENCODING="utf-8",
-                   PYTHONUNBUFFERED="1", SAR_TEE_DIR=tee_dir,
+                   PYTHONUNBUFFERED="1", SAR_TEE_DIR=tee_dir, **EXTRA_ENV,
                    WEBOTS_HOME=os.path.normpath(os.path.join(
                        os.path.dirname(WEBOTS), "..", "..", "..")))
         proc = subprocess.Popen(
@@ -227,7 +234,15 @@ def run_one(world, tag, n, timeout_s=600, pristine=True):
             drain()
             done = True
             break
-    if not done:
+        # Load watchdog: a world whose asset download stalls never starts its
+        # controllers. Detect that early instead of burning the full timeout.
+        if (time.time() - t0 > LOAD_TIMEOUT_S and
+                not any(f.startswith("sar_marking_supervisor")
+                        for f in (os.listdir(tee_dir) if os.path.isdir(tee_dir)
+                                  else []))):
+            status = "load-hang"
+            break
+    if not done and status == "ok":
         status = "timeout"
     try:
         live.close()
@@ -374,9 +389,16 @@ def main():
     ap.add_argument("--no-pristine", action="store_true",
                     help="don't restore our cached flyover outputs — lets a "
                          "foreign branch's own preflight run untouched")
+    ap.add_argument("--debug-vision", action="store_true",
+                    help="set SAR_DEBUG_VISION=1: per-robot pose + vision-gate "
+                         "telemetry every 0.5 s (diagnosis runs only)")
     args = ap.parse_args()
+    if args.debug_vision:
+        EXTRA_ENV["SAR_DEBUG_VISION"] = "1"
 
     worlds = list(WORLDS) if args.world == "all" else [args.world]
+    for world in worlds:                 # see warm_webots_cache.py
+        warm_webots_cache.warm(world)
     os.makedirs(OUT_DIR, exist_ok=True)
     csv_path = os.path.join(OUT_DIR, f"{args.tag}.csv")
     new = not os.path.exists(csv_path)
@@ -386,8 +408,14 @@ def main():
             w.writeheader()
         for world in worlds:
             for n in range(1, args.runs + 1):
-                row = run_one(world, args.tag, n,
-                              pristine=not args.no_pristine)
+                for attempt in range(3):
+                    row = run_one(world, args.tag, n,
+                                  pristine=not args.no_pristine)
+                    if row["status"] != "load-hang":
+                        break
+                    print(f"[{args.tag}] {world} run {n}: world load hung - "
+                          f"re-warming asset cache and retrying", flush=True)
+                    warm_webots_cache.warm(world)
                 w.writerow(row)
                 cf.flush()
                 print(f"[{args.tag}] {world} run {n}: "

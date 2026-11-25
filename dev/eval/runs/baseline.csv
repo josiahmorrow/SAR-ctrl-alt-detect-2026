@@ -1,0 +1,8 @@
+﻿tag,world,run,victims_found,victims_total,overall,finding,efficiency,coordination,extraction,ratio,time_score,confidence,avg_time_s,dist_score,dist_per_victim,robots_contributing,map_score,victim_est_score,avg_loc_err_m,total_distance_m,messages,coverage_pct,explore_events,abandoned,tilt_events,found_times,reports,false_reports,wall_clock_s,status
+baseline,small,1,0,4,0.193,0.0,0.0,0.0,0.642,0.0,0.0,0.0,,0.0,,0,0.56,0.724,0.66,90.0,0,43,0,1,1,,0,0,260.4,ok
+baseline,medium,1,2,4,0.466,0.554,0.23,0.5,0.451,0.5,0.493,0.67,91.3,0.092,59.7,1,0.262,0.639,0.95,119.4,3,36,0,1,6,36.9 145.7,3,1,296.4,ok
+baseline,large,1,0,5,0.141,0.0,0.0,0.0,0.469,0.0,0.0,0.0,,0.0,,0,0.776,0.162,4.95,15.8,0,9,0,0,5,,0,0,182.0,ok
+baseline,large,2,0,5,0.141,0.0,0.0,0.0,0.469,0.0,0.0,0.0,,0.0,,0,0.776,0.162,4.95,15.5,0,9,0,0,7,,0,0,185.0,ok
+baseline,large,3,0,5,0.141,0.0,0.0,0.0,0.469,0.0,0.0,0.0,,0.0,,0,0.776,0.162,4.95,12.1,0,8,0,0,2,,0,0,181.9,ok
+baseline,large,4,0,5,0.141,0.0,0.0,0.0,0.469,0.0,0.0,0.0,,0.0,,0,0.776,0.162,4.95,8.1,0,6,0,0,2,,0,0,194.0,ok
+baseline,large,5,0,5,0.141,0.0,0.0,0.0,0.469,0.0,0.0,0.0,,0.0,,0,0.776,0.162,4.95,16.7,0,10,0,0,7,,0,0,197.0,ok
