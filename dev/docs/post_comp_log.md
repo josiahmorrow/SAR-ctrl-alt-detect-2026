@@ -501,3 +501,38 @@ Medium exp07 s0: robot2 reached 1.5 m from v1's estimate, scanned, saw only
 a sliver of denim past the platform cart, retired the waypoint and never
 came back. exp08 queues one more look from the opposite side (1.2 m from
 the estimate, on a free cell) when a scan at an estimate finds nothing.
+
+### exp08 result (kept, commit 6a1afaa)
+
+| world @600 s | s0 | s1 | s2 | mean found | mean false |
+|---|---|---|---|---|---|
+| small exp08 | 4/4, 2 F | 2/4, 1 F | 2/4, 1 F | 2.67 | 1.33 |
+| medium exp08 | 1/4, 3 F | 3/4, 1 F | 2/4, 1 F | 2.0 | 1.67 |
+
+First 4/4 on any world (small s0; the second look fired at (7.8, 6.5) and
+that victim was then found). Totals 14/24 vs exp07 13/24. Medium s0's false
+reports are robot1 at the true v3 and v2 bodies but 1.20 m and 2.06 m from
+their scored positions (obstacles keep it off the body), plus the cart.
+
+### exp09: IR speed governor (large only, not kept)
+
+Slow toward front-IR low obstacles. Large s0, s1: 0/5, 21.4 m and 11.8 m.
+The flips come with no IR warning (IR inf half a second before, robot thrown
+0.5 m in one tick, then inverted). Not a contact-speed problem.
+
+### Large diagnostic: the second Floor node (`diagL`, DEV-ONLY world copy)
+
+`large_world.wbt` has two `Floor` nodes at z = 0 (`floor(1)` 16 x 16.4 at
+(2.5, -4.3), `floor(2)` 7 x 18 at (-9, -4)); medium has one. Every large
+flip so far happens on open floor with nothing within 1.2 m in the world
+file. A diagnostic copy of the dev world without `floor(2)` (git-excluded;
+the judged world is untouched and the dev world was restored from backup):
+
+| large @600 s (no floor(2)) | found | false | tilt lines | distance |
+|---|---|---|---|---|
+| seed 0, exp08 controller | **3/5** (43.4, 236.0, 401.2) | 0 | 10 | 159.8 m |
+| seed 1, exp08 controller | **2/5** (63.0, 141.0) | 1 | 5 | 173.7 m |
+
+On the untouched world the same controller makes 0/5 with both robots
+inverted within 40 s. The large failure is a world/physics defect, not a
+navigation one; it cannot be fixed under rule 2. Raised with Joe.
