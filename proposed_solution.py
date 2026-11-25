@@ -574,6 +574,16 @@ SLEW_RAMP_S        = 0.35   # 0 → MAX_SPEED command ramp time
 # nothing wheels can do); freeze so odometry and the map stay unpoisoned.
 TILT_RECOVER_LO    = 25.0
 TILT_RECOVER_HI    = 80.0
+ODOM_TILT_FREEZE   = True   # exp05: no encoder translation while tilted
+ODOM_SLIP_CHECK    = True   # exp05b: undo encoder travel the lidar disowns
+SLIP_CHECK_S       = 0.5    # window length
+SLIP_MIN_MOVE_M    = 0.06   # below this the two hypotheses are inseparable
+SLIP_MAX_RANGE_M   = 8.0    # only well-measured returns
+SLIP_RATIO         = 0.5    # 'stationary' must fit twice as well
+REPO_BODY_IR_M     = 0.15   # exp06: low obstacle this close during a
+                            # reposition = the victim's body; stop here
+LOW_PERSIST        = True   # exp07: IR/tilt/victim obstacles survive lidar erase
+POST_REPORT_BACK_S = 1.0    # exp07: straight reverse after a report (~0.25 m)
 RECOVER_PULSE_S    = 0.6    # alternate fwd/rev pulse length
 RECOVER_MAX_S      = 8.0    # wiggle burst length per attempt
 RECOVER_REST_S     = 12.0   # rest between attempts — retry forever (a beached
@@ -1318,6 +1328,18 @@ class SARRobot:
 
         dist = (d_fl + d_fr) / 2.0
         d_th = (d_fr - d_fl) / AXLE_LENGTH
+        # exp05: a high-centred or climbing chassis has lost wheel traction,
+        # so encoder travel is not body travel (small seed 1: 160 s of
+        # recovery wiggle on a victim ran odometry 40 m away; the duplicate
+        # reports that followed scored False). Translation is frozen while
+        # the tilt is sustained above the abort angle (sustain rejects the
+        # apparent lean of acceleration ramps) or in the recovery band.
+        if ODOM_TILT_FREEZE and (
+                self._tilt_deg_now > TILT_RECOVER_LO
+                or (self._tilt_hi_since is not None
+                    and self.robot.getTime() - self._tilt_hi_since
+                    >= TILT_SUSTAIN_S)):
+            dist = 0.0
 
         # Compass is authoritative when available; encoder integration otherwise
         if self._compass:
@@ -1327,6 +1349,70 @@ class SARRobot:
 
         self.x += dist * math.cos(self.theta)
         self.y += dist * math.sin(self.theta)
+        if ODOM_SLIP_CHECK:
+            self._slip_check()
+
+    def _slip_check(self):
+        """exp05b: wheel-slip rejection by scan consistency.
+
+        Every SLIP_CHECK_S, ask which pose explains the current lidar scan
+        better: the encoder pose, or the pose at the start of the window
+        (robot did not translate). Reference-scan endpoints are re-projected
+        under each hypothesis and compared with the current scan; when
+        'stationary' fits clearly better, the window's encoder translation
+        is wheel slip (pushing a victim, wedged on a low obstacle) and is
+        undone. Ambiguous geometry (both fit alike, e.g. along a corridor)
+        keeps the encoders. Heading comes from the compass either way.
+        Small exp05 s0: robot2 pressed against a victim with the camera
+        frame frozen while odometry ran 0.3 m/s; 58 repeat reports."""
+        now = self.robot.getTime()
+        if now < getattr(self, "_slip_next", 0.0) or not self._lidar:
+            return
+        self._slip_next = now + SLIP_CHECK_S
+        try:
+            r1 = np.asarray(self._lidar.getRangeImage(), dtype=float)
+        except Exception:
+            return
+        ref = getattr(self, "_slip_ref", None)
+        self._slip_ref = (r1, self.x, self.y, self.theta)
+        if ref is None or self._tilt_deg_now > LIDAR_TILT_MAX_DEG:
+            return
+        r0, x0, y0, th0 = ref
+        n = len(r1)
+        if n == 0 or len(r0) != n:
+            return
+        dx, dy = self.x - x0, self.y - y0
+        if math.hypot(dx, dy) < SLIP_MIN_MOVE_M:
+            return
+        ang = np.pi - 2.0 * np.pi * np.arange(n) / n          # beam angles
+        ok0 = np.isfinite(r0) & (r0 > 0.12) & (r0 < SLIP_MAX_RANGE_M)
+        if ok0.sum() < 20:
+            return
+        px = r0[ok0] * np.cos(th0 + ang[ok0])                  # ref endpoints,
+        py = r0[ok0] * np.sin(th0 + ang[ok0])                  # world-aligned
+
+        def resid(ox, oy):
+            qx, qy = px - ox, py - oy
+            rho = np.hypot(qx, qy)
+            phi = np.arctan2(qy, qx) - self.theta
+            j = np.round((np.pi - phi) * n / (2.0 * np.pi)).astype(int) % n
+            meas = r1[j]
+            good = np.isfinite(meas) & (meas < SLIP_MAX_RANGE_M)
+            if good.sum() < 20:
+                return float('nan')
+            return float(np.median(np.minimum(np.abs(meas[good] - rho[good]),
+                                              0.5)))
+
+        e_move, e_stay = resid(dx, dy), resid(0.0, 0.0)
+        if math.isfinite(e_move) and math.isfinite(e_stay) \
+                and e_stay < SLIP_RATIO * e_move:
+            self.x, self.y = x0, y0                            # undo slip
+            self._slip_ref = (r1, x0, y0, self.theta)
+            self._slip_count = getattr(self, "_slip_count", 0) + 1
+            if DEBUG_VISION:
+                print("[%s] t=%6.1f SLIP undone %.2f m (fit move %.3f stay %.3f) n=%d"
+                      % (self.robot_id, now, math.hypot(dx, dy), e_move, e_stay,
+                         self._slip_count))
 
     # ── Actuation ─────────────────────────────────────────────────────────
 
@@ -1375,6 +1461,14 @@ class SARRobot:
         self._sup_emitter.send(json.dumps(msg).encode())
         self._reported_positions.append((self.x, self.y))
         self._broadcast_victim(self.x, self.y)
+        self._paint_victim_body()
+        # exp07: we are parked against the body; the next move is usually a
+        # turn in place, and a skid-steer turn touching a lying body mounts
+        # it (exp06 small s2: tilt began mid-turn, cmd=(3.1,-5.5)). Back
+        # straight out first, reusing the tilt-escape reverse.
+        if LOW_PERSIST:
+            self._tilt_escape_until = max(self._tilt_escape_until,
+                                          self.robot.getTime() + POST_REPORT_BACK_S)
         print(f"[{self.robot_id}] Victim reported @ ({self.x:.2f}, {self.y:.2f})  "
               f"conf={HIGH_CONFIDENCE:.2f}")
 
@@ -1655,7 +1749,7 @@ class SARRobot:
         print("[%s] t=%6.1f %-5s pos=(%6.2f,%6.2f) wp%-3d=(%6.2f,%6.2f) "
               "conf=%.2f depth=%6.2f blob=%.4f ratio=%.3f h_med=%5.2f h_low=%5.2f "
               "wid=%5.2f "
-              "why=%-18s block=%s%s tex_v=%.1f tex_s=%.1f thick=%.3f"
+              "why=%-18s block=%s%s tex_v=%.1f tex_s=%.1f thick=%.3f ir=%.2f tilt=%.0f"
               % (self.robot_id, now, state, self.x, self.y, self.target_idx, tx, ty,
                  v.get("conf", 0.0), v.get("depth", float('inf')),
                  v.get("blob", 0.0), v.get("ratio", 0.0),
@@ -1664,7 +1758,8 @@ class SARRobot:
                  v.get("why", "-"), self._home_block,
                  " FP-ZONE" if self._victim_false_positive_zone() else "",
                  v.get("tex_v", float('nan')), v.get("tex_s", float('nan')),
-                 v.get("thick_m", float('nan'))))
+                 v.get("thick_m", float('nan')), self._ir_front_m(),
+                 self._tilt_deg_now))
 
     def _victim_false_positive_zone(self):
         """True near the origin mat or the partner robot — both trigger HSV
@@ -1723,6 +1818,13 @@ class SARRobot:
                 self._repo_prev, self._repo_stall_t = (self.x, self.y), now
             elif now - self._repo_stall_t > 2.5:
                 stalled = True                    # furniture in the way — report here
+            # exp06: a lying body is a low obstacle the lidar cannot see, and
+            # the IR guard is off while closing on a victim. When the front IR
+            # finds it right ahead, driving on means climbing the victim
+            # (small seed 1: 160 s high-centred, odometry 40 m out). The body's
+            # edge is the closest reachable point toward the estimate.
+            if self._ir_front_m() < REPO_BODY_IR_M:
+                stalled = True
             if d <= REPOSITION_STOP_M or now > self._repo_deadline or stalled:
                 self.stop()
                 self._repositioning = None
@@ -1914,10 +2016,14 @@ class SARRobot:
             inf_px = max(1, int(round(NAV_INFLATE_M / NAV_RES)))
             k      = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,
                                                (2 * inf_px + 1, 2 * inf_px + 1))
-            near   = cv2.dilate(self._nav_wall, k)
-            cost   = np.ones(self._nav_wall.shape, dtype=np.float32)
-            cost[near > 0]           = NAV_NEAR_COST
-            cost[self._nav_wall > 0] = NAV_WALL_COST
+            wall   = self._nav_wall
+            low    = getattr(self, "_nav_low", None)
+            if LOW_PERSIST and low is not None and low.shape == wall.shape:
+                wall = np.maximum(wall, low)
+            near   = cv2.dilate(wall, k)
+            cost   = np.ones(wall.shape, dtype=np.float32)
+            cost[near > 0] = NAV_NEAR_COST
+            cost[wall > 0] = NAV_WALL_COST
             self._nav_cost   = cost
             self._cost_dirty = False
         return self._nav_cost
@@ -2279,6 +2385,43 @@ class SARRobot:
             return 0.0
         return math.degrees(math.acos(max(-1.0, min(1.0, az / g))))
 
+    def _low_mark(self, r0, r1, c0, c1):
+        """exp07: persistent low-obstacle layer. The lidar plane passes over
+        bodies, kerbs and rubble, so its free-space erase must not undo what
+        the IR, the tilt guard or a confirmed victim told us is there."""
+        if not LOW_PERSIST or self._nav_wall is None:
+            return
+        if getattr(self, "_nav_low", None) is None:
+            self._nav_low = np.zeros_like(self._nav_wall)
+        self._nav_low[max(0, r0):r1, max(0, c0):c1] = 1
+        self._cost_dirty = True
+
+    def _paint_victim_body(self):
+        """exp07: a confirmed victim is a low obstacle the robot must route
+        around, not over (small exp05b/exp06: robots beached on the body they
+        had just reported, on the way to the next waypoint). Footprint ahead
+        of the camera: from the measured denim depth, extent from the blob's
+        measured width (broadside = wide and shallow, end-on = narrow, deep)."""
+        if not LOW_PERSIST or self._nav_wall is None:
+            return
+        v  = self._last_vision or {}
+        d0 = v.get("depth", float("inf"))
+        d0 = d0 if math.isfinite(d0) and d0 < 1.5 else 0.5
+        wm = v.get("width_m", float("nan"))
+        wm = wm if math.isfinite(wm) else 0.6
+        half = min(0.9, max(0.3, wm / 2.0 + 0.1))
+        deep = 0.6 if wm > 0.9 else 1.3
+        ca, sa = math.cos(self.theta), math.sin(self.theta)
+        a = max(0.25, d0 - 0.1)
+        while a <= d0 + deep:
+            l = -half
+            while l <= half:
+                r, c = self._w2c(self.x + a * ca - l * sa, self.y + a * sa + l * ca)
+                self._low_mark(r, r + 1, c, c + 1)
+                l += NAV_RES
+            a += NAV_RES
+        self._path = None
+
     def _ir_front_m(self):
         """Nearest reading of the two front IR sensors (0.053 m mount height —
         sees stairs/rubble below the lidar plane). inf when clear."""
@@ -2307,6 +2450,7 @@ class SARRobot:
         if 1 <= r < n - 1 and 1 <= c < n - 1:
             self._nav_wall[r - 1:r + 2, c - 1:c + 2] = 1
             self._nav_seen[r - 1:r + 2, c - 1:c + 2] = 1
+            self._low_mark(r - 1, r + 2, c - 1, c + 2)
             self._cost_dirty = True
             self._path = None
 
@@ -2723,6 +2867,10 @@ class SARRobot:
                 # single burst cannot.
                 if self._recover_start is None:
                     self._recover_start = now_g
+                    if DEBUG_VISION and self._accel:
+                        print("[%s] t=%6.1f TILT acc=(%.2f,%.2f,%.2f) cmd=(%.2f,%.2f)"
+                              % ((self.robot_id, now_g) + tuple(self._accel.getValues())
+                                 + (self._cmd_l, self._cmd_r)))
                     print(f"[{self.robot_id}] Tilt {self._tilt_deg_now:.0f}° "
                           f"— attempting recovery wiggle")
                 cycle = (now_g - self._recover_start) % (RECOVER_MAX_S
@@ -2744,6 +2892,11 @@ class SARRobot:
                     if now_g >= self._tilt_escape_until:
                         print(f"[{self.robot_id}] Tilt "
                               f"{self._tilt_deg_now:.0f}° — backing off")
+                    if DEBUG_VISION and self._accel \
+                            and now_g >= self._tilt_escape_until:
+                        print("[%s] t=%6.1f TILT acc=(%.2f,%.2f,%.2f) cmd=(%.2f,%.2f)"
+                              % ((self.robot_id, now_g) + tuple(self._accel.getValues())
+                                 + (self._cmd_l, self._cmd_r)))
                     self._tilt_escape_until = max(self._tilt_escape_until,
                                                   now_g + TILT_ESCAPE_S)
                     self._paint_low_obstacle(0.10)   # whatever we're climbing

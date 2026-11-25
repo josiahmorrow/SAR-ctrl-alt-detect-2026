@@ -392,3 +392,95 @@ the measure. `detchk` reruns the committed 8d2ced9 controller on small seed 0
 Cart reports at true (2.41, 3.39) and (2.49, 3.05). v3 marker (-1.10, -4.39):
 report at (-1.10, -3.38) = 1.01 m, False; 40 s later at (-1.27, -3.48) =
 0.93 m, True. v1 (4.11, 0.45) never found.
+
+### detchk result (after the 18:59 reboot)
+
+Commit 8d2ced9 (no telemetry patch) on small seed 0: 1/4, 99.4 m, 494 tilt
+lines, found 43.6 s. Identical to `snapS` and `thickS` seed 0. The telemetry
+patches are behaviour-neutral; the original exp02 small seed-0 3/4 was an
+earlier sim state that no longer reproduces. Current exp02 small reference:
+seeds 0/1/2 = 1, 3, 2 found (mean 2.0).
+
+### exp05: freeze encoder translation while tilted (abandoned after 1 run)
+
+Hypothesis: encoder travel while high-centred is not body travel; freezing it
+keeps `_already_reported_nearby` honest. `ODOM_TILT_FREEZE`: no translation
+while tilt > 25 deg, or > 11 deg sustained 0.35 s.
+
+Small seed 0: 2/4 found (43.6, 69.6), but **60 False reports**. robot2 sat
+pressed against a victim, untilted, camera frame frozen (depth 0.61 m
+constant), while odometry ran 0.3 m/s; every metre of phantom travel
+cleared the duplicate check and it reported again. Wheel slip without tilt
+is the general case. Remaining seeds not run.
+
+### exp05b: exp05 + lidar slip rejection
+
+Every 0.5 s, re-project the previous scan's endpoints under two hypotheses
+(encoder pose vs. no translation) and compare medians against the current
+scan. If "no translation" fits at least twice as well, undo the window's
+encoder translation. Ambiguous geometry keeps the encoders. Heading stays
+from the compass. ~55 lines.
+
+| world @600 s | s0 | s1 | s2 | mean found | mean false |
+|---|---|---|---|---|---|
+| small exp05b | 1/4, 0 F | 2/4, 0 F | 1/4, 0 F | 1.33 | 0 |
+| small exp02 (current reference) | 1/4, 0 F | 3/4, 2 F | 2/4, 0 F | 2.0 | 0.67 |
+| medium exp05b | 1/4, 1 F | 1/4, 1 F | 2/4, 1 F | 1.33 | 1.0 |
+| medium exp02 (thickM s0, s1; exp02s s2) | 3/4, 3 F | 1/4, 1 F | 2/4, 4 F | 2.0 | 2.67 |
+
+Slip undos are rare (0-13 per robot per run) and look genuine (stay residual
+0.01-0.05 m vs move 0.08-0.27 m). False reports fall; finds fall too, but the
+finds are dominated by something else: in 4 of 5 runs a robot is
+permanently beached (tilt lines 2252, 13471, 14908). In small s0, s1 and s2
+robot2 beaches immediately after its first find: the marker-offset
+reposition drives from 0.75 m straight at the CSV estimate 1.2 m away,
+across the victim's body, reports from on top of it, and never comes down.
+That is exp06.
+
+### exp06: end the reposition when the front IR sees the body (inert)
+
+`REPO_BODY_IR_M = 0.15`: during a reposition, front IR closer than this counts
+as a stall (report from here). Stacked on exp05b.
+
+| world @600 s | s0 | s1 | s2 |
+|---|---|---|---|
+| small | 1/4, 0 F (1513 tilt lines) | 2/4 by 450 s, 0 F (physics stall, stopped) | 1/4, 0 F |
+| medium | 1/4, 1 F | 1/4, 1 F | 1/4, 1 F |
+
+Report times and tilt counts match exp05b run for run (small s1 2252 tilt
+lines in both): the stop never fired. TILT accelerometer telemetry shows why:
+the climb starts during the in-place turn *after* the report (small s2
+robot2 t=37.4, cmd=(3.1, -5.5)), where the front IR sees nothing. Inert;
+removed when the next experiment is assembled.
+
+### exp07: back out after a report; victims and low obstacles stay in the map
+
+One hypothesis: robots beach on the victim they have just reported. Three
+mechanisms, all aimed at that body:
+- after a report, reverse straight out for 1.0 s (about 0.25 m) before any turn;
+- paint the reported body's footprint into a persistent low-obstacle layer
+  (depth and blob width from the confirming frame: broadside = wide and
+  shallow, end-on = narrow and deep);
+- IR and tilt-guard low obstacles go into the same layer, so the lidar's
+  free-space erase (its plane passes over them) can no longer delete them.
+Stacked on exp05b + exp06 (exp06 inert, left in as tested). ~80 lines.
+
+| world @600 s | s0 | s1 | s2 | mean found | mean false | tilt lines |
+|---|---|---|---|---|---|---|
+| small exp07 | 3/4, 3 F | 2/4, 1 F | 3/4, 0 F | **2.67** | 1.33 | 52, 54, 41 |
+| small exp05b | 1/4, 0 F | 2/4, 0 F | 1/4, 0 F | 1.33 | 0 | 6, 2252, 13471 |
+| small exp02 | 1/4, 0 F | 3/4, 2 F | 2/4, 0 F | 2.0 | 0.67 | 494, 781, 21 |
+| medium exp07 | 1/4, 1 F | 2/4, 1 F | 2/4, 2 F | 1.67 | 1.33 | 6, 13, 7 |
+| medium exp05b | 1/4, 1 F | 1/4, 1 F | 2/4, 1 F | 1.33 | 1.0 | 8, 14908, 9 |
+| medium exp02 | 3/4, 3 F | 1/4, 1 F | 2/4, 4 F | 2.0 | 2.67 | 49, 11, - |
+
+Beaching on reported victims is gone (tilt lines in the tens in all six
+runs). Totals over 6 runs: exp07 13 found / 8 False, exp02 12 / 10. Small
+improves; medium's mean is 0.33 lower than exp02's, inside the noise
+(exp02 medium s0's 3/4 has not reproduced since), so this is flagged rather
+than reverted. Kept.
+
+Remaining false reports on small are duplicates at found victims (v1 and v2
+lie 1.4 m apart; partner positions drift apart by more than the 1.0 m
+duplicate radius). Medium robot2 now spends most of the run trapped on
+sweep waypoints along x = 18 (timeouts, "written off" regions).
