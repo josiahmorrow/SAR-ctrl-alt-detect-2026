@@ -1,0 +1,10 @@
+# Runtime outputs: the preflight and the mission rewrite these every run.
+sim_logs/*
+!sim_logs/.gitkeep
+
+__pycache__/
+*.py[cod]
+
+# Dev runs: per-run logs and supervisor artefacts stay local; the summary
+# CSV for each tag (dev/eval/runs/<tag>.csv) is committed as the record.
+dev/eval/runs/*/
