@@ -1,0 +1,2 @@
+tag,world,run,seed,mission_s,victims_found,victims_total,overall,finding,efficiency,coordination,extraction,ratio,time_score,confidence,avg_time_s,dist_score,dist_per_victim,robots_contributing,map_score,victim_est_score,avg_loc_err_m,total_distance_m,messages,coverage_pct,explore_events,abandoned,tilt_events,found_times,reports,false_reports,wall_clock_s,status
+nav4e_M0,medium,1,0,600,2,4,0.41,0.492,0.018,0.5,0.451,0.5,0.466,0.511,96.0,0.0,193.1,1,0.262,0.639,0.95,386.1,4,63,0,7,9,40.7 151.4,4,2,1387.2,ok

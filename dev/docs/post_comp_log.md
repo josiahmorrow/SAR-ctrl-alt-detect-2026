@@ -938,3 +938,27 @@ Next, a 3-seed ablation on the kept stack (exp24) to find which part hurts:
 nav4d = log-odds map only (old soft planner, wall-following on);
 nav4e = old binary map + hard inflated planner + route re-check, unknown
 cost 1.0, wall-following on.
+
+nav4c final, seeds 0-5: small 1.33/4 (0.67 F), medium 2.67/4 (1.33 F).
+
+### Planner ablation (nav4d, nav4e) - planner line closed
+
+On the kept stack (exp24), seeds 0-2, against exp24's seeds 0-2 (small
+2, 3, 3 = 2.67; medium 4, 3, 3 = 3.33):
+
+| | small found (F) | medium found (F) | timeouts/run S / M |
+|---|---|---|---|
+| nav4d: log-odds map only, old soft planner + wall-following | 1.67 (0.67) | 2.00 (1.33) | 19.3 / 17.0 |
+| nav4e: old binary map, hard padded planner + route re-check | 1.33 (0.33) | 1.33 (2.00) | 19.3 / 12.0 |
+
+Every map or planner change tried (nav1, nav4, nav4c, nav4d, nav4e) loses
+victims on small and does not gain on medium; nav4d shows that even the
+map change alone, under the old planner, costs about a victim per run. The
+rest of the controller (homing distances, waypoint arrival radii, timeouts,
+scan behaviour) has been shaped around the old binary map's behaviour; a
+different map changes where robots go and what the camera sees, and the
+measured effect is negative. **Planner line closed**; the old planner stays.
+No-improvement streak since exp24: 4 (nav4, nav4c, nav4d, nav4e).
+
+Queued: exp24 seeds 6-11 (`exp24x`) to tighten the kept stack's estimate
+(n=12 per world) before choosing between remaining local fixes.
