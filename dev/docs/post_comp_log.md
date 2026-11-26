@@ -761,3 +761,18 @@ at 0.74 m, width 0.67, then "repositioning toward estimate (10.81,-24.86)".
 That flyover estimate lies away from the body in view, so the robot drives
 off the victim and reports 1.32 m from it. The same happens for medium
 victim2 in exp08b M3/M4, exp16 M0/M3/M4 and exp18 M3/M4. This is exp19.
+
+exp18 medium s5: 2/4; six-seed medium 2.00 (2.0 F). Verdict unchanged.
+
+### exp15: own-report dedup on body position (rejected)
+
+Own reports store a body estimate (pose + camera bearing + denim depth +
+0.2/0.6 m by lie); a candidate is a duplicate only within 1.0 m of an own
+body; partner reports keep the 1.5 m robot-position gate. Seeds 0-5: small
+2.17/4 (1.17 F), medium 1.83/4 (1.67 F). It does what it was meant to in one
+case (small s4: robot2 reported v2 then the adjacent v1 13 s later, both
+true), but the body estimate scatters by more than 1 m between views of the
+same victim: small s0 re-reported v1 four times, s2 twice, s5 once (all
+"dup", 0.28-0.72 m from v1). Small false reports up from 0.67 to 1.17, finds
+down. **Rejected.** Adjacent victims need a dedup cue that is stable across
+views (or a second report only when two distinct bodies are seen at once).
