@@ -896,3 +896,20 @@ wall-following off; A* heuristic weight 1.3. Offline (test_nav4.py,
 synthetic maps): 1 m door passed, 0.4 m door refused, goal inside a body
 moved out, new wall across a route detected, 24 m cluttered map planned in
 5 ms, worst case 174 ms. Running seeds 0-5 from 04:25.
+
+nav4 result, seeds 0-5: small 1.67/4 (0.67 F), medium 2.33/4 (1.17 F)
+against exp23 2.67 (0.17 F) / 2.67 (0.83 F). Navigation counters improve
+(waypoint timeouts per run small 17.5 -> 15.0, medium 14.8 -> 11.8;
+regions written off 4.5 -> 3.7, 4.3 -> 2.5) but finds fall, most on small.
+Causes seen in the logs (offline tool `_scratch/traj.py`):
+- The startup spin learned 69-86 wall cells instead of ~1000: with
+  LO_HIT 0.9 < LO_OCC 1.0 a wall needs two hits, and only 90 beams are
+  sampled. The first routes ran on an almost empty map (small s1 robot2
+  drove straight at the wall between it and v2 and lost 30 s scanning from
+  the wrong side; first small reports came at 64-121 s, against 32-44 s).
+- Small s1 robot1 left the building on a route through unseen space and
+  sat wedged at (12.3,2.5) for 450 s. An envelope mask (nav4b) cannot stop
+  this here: the flyover bbox reaches x = 12.85 because the extracted walls
+  are extended lines. Not run.
+nav4 as built: **not kept**. nav4c = nav4 with LO_HIT 1.2 (one hit makes a
+wall, one clear pass removes it) and 180 sampled beams; running from 06:15.
