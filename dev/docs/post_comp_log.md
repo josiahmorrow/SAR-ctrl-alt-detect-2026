@@ -536,3 +536,122 @@ the judged world is untouched and the dev world was restored from backup):
 On the untouched world the same controller makes 0/5 with both robots
 inverted within 40 s. The large failure is a world/physics defect, not a
 navigation one; it cannot be fixed under rule 2. Raised with Joe.
+
+### exp10: known-body gate on the painted footprint (rejected after 1 run)
+
+Block homing/reporting when the denim's floor point lands on a painted victim
+footprint (own, or a 1.0 m disc round the partner's report). Small s0: 1/4
+(exp08: 4/4). No `known-body` block appeared in telemetry, but the report-time
+gate has no telemetry, and robot2 never reported v2 (1.4 m from v1, inside
+v1's 1.3 m-deep footprint). Footprints are too coarse to separate neighbours.
+Stopped after one run.
+
+### Why exp08 misses victims (trajectory_plot, odometry-based)
+
+- small s2, s3: v2 missed although robot2 passed 0.50 m from it while homing
+  on v1 (1.4 m away). The homing gate refuses any candidate while the robot is
+  within `HOME_BLOCK_R_M` = 1.5 m of a previous report *position*; the
+  victims are closer together than that. exp11 targets this.
+- medium: v1 (next to the platform carts) and v3 (behind pipes/boxes) are the
+  usual misses; robots pass 0.65-1.0 m from v1 and ~1 m from v3 without a
+  candidate (`denim-blob-small` dominates the gate reasons there).
+
+### exp11: identify victims by body point, not robot position (rejected)
+
+Known-victim checks (homing gate, report gate) compare the denim blob's floor
+point (bearing from image column, range from depth camera) with recorded body
+points (own and partner's, broadcast), radius 0.7 m; robot-position radius
+cut to 0.5 m.
+
+| world @600 s | s0 | s1 | s2 | mean found | mean false |
+|---|---|---|---|---|---|
+| small exp11 | 2/4, 0 F | 2/4, 3 F | 3/4, 2 F | 2.33 | 1.67 |
+| small exp08 | 4/4, 2 F | 2/4, 1 F | 2/4, 1 F | 2.67 | 1.33 |
+| medium exp11 | 1/4, 3 F | 3/4, 2 F | 2/4, 1 F | 2.0 | 2.0 |
+| medium exp08 | 1/4, 3 F | 3/4, 1 F | 2/4, 1 F | 2.0 | 1.67 |
+
+No gain in finds, more repeat reports (body points of one victim seen from
+different sides differ by more than 0.7 m). Reverted.
+
+### exp12 (running): marker-offset reposition off
+
+Every beaching on small since exp07 starts inside the reposition (drive from
+0.75 m at the CSV estimate, across the body). Test: `REPOSITION_MAX_M = 0`.
+
+### exp12 result: reposition off (rejected after 2 runs)
+
+Small s0 2/4 (5746 tilt lines), s1 1/4 (6893) against exp08's 4/4 and 2/4
+on the same seeds. Robots still beach without the reposition; it was not
+the cause. Stopped to free the machine for the approved rewrite.
+
+## Navigation rewrite (approved by Joe 26/11/2026 08:22)
+
+### nav1: log-odds occupancy + hard inflated planner
+
+`make_nav1.py` on exp08 (~120 lines):
+- log-odds grid per scan: pass -0.4 along each sampled beam (0.25 m to 0.12 m
+  short of the return, up to 5 m), hit +0.9 at returns under 5 m, clamp
+  [-4, 4], wall while > 1.0; each cell counted once per scan; partner mask
+  kept;
+- planner first searches with walls and the persistent low-obstacle layer
+  inflated by the chassis radius (0.18 m) as impassable (start neighbourhood
+  exempt, a blocked goal moved to the nearest free cell within 1 m), falling
+  back to the soft-cost search; `HARD_WALL_FIRST = True` again (exp01 failed
+  on the binary map, where noise sealed doors).
+
+Offline test (`_scratch/test_nav1.py`, synthetic room, 90 of 360 beams): a
+body blocking a doorway for 10 scans clears after 7-10 clear scans (~3 s);
+real walls keep 97-100% cell coverage.
+
+### nav1 result
+
+| world @600 s | s0 | s1 | s2 | mean found | mean false | coverage |
+|---|---|---|---|---|---|---|
+| small nav1 | 2/4, 0 F | 2/4, 0 F | 1/4, 0 F | 1.67 | 0 | 64, 61, 99% |
+| small exp08 | 4/4, 2 F | 2/4, 1 F | 2/4, 1 F | 2.67 | 1.33 | 51, 37, ?% |
+| medium nav1 | 2/4, 2 F | 3/4, 1 F | 3/4, 2 F | **2.67** | 1.67 | 68, 72, 71% |
+| medium exp08 | 1/4, 3 F | 3/4, 1 F | 2/4, 1 F | 2.0 | 1.67 | |
+
+Coverage rises sharply (small up to 99%, medium ~70%) and medium finds rise;
+small finds fall. Small s2 is the telling run: 99% lidar coverage, 1/4
+found, and trajectory_plot shows robots passing v1, v3 and v4 at about 1 m
+in DRIVE with no candidate frame; robot2 never saw denim at all. The camera
+looks along the route, so lidar coverage is not camera coverage. nav2 adds
+camera-coverage look-arounds. Not kept on its own (small regresses).
+
+### nav2: camera-coverage look-arounds (rejected)
+
+On nav1, keep a grid of cells the camera has seen (FOV, 3 m, cut at the
+lidar return); turn on the spot (6.5 s) when more than half the free floor
+within 2.5 m is unseen, at most every 10 s.
+
+Small 0/4, 2/4, 0/4; medium s0 1/4 with 4 False. Stopped. In the small runs
+robot2's sequence at v1 is unchanged: second look from the far side, then the
+marker-offset reposition drives across the body, reports False from on top
+of it (4.17, -2.9 odometry vs the usual 3.35, -3.3) and beaches for the rest
+of the run. Look-arounds did not cause that, but they did not offset it either.
+
+### Two missions in parallel (memory permitting)
+
+Commit charge with one Webots: 33.7 GB limit, 7.1 GB free; Webots ~3.8 GB.
+`_scratch/par2.ps1` runs small in sar-env and medium in sar-env2 at the same
+time (`SAR_PARALLEL=1` so neither batch kills the other's Webots; tags
+`<tag>S` / `<tag>M`). First use: exp13.
+
+### exp13: gravity-guided recovery from high-centring (rejected)
+
+Replace the symmetric fwd/rev wiggle: stop 0.6 s so the accelerometer reads
+gravity alone, then push 2 s toward the low side of the chassis (every third
+push the other way). Small 2/4, 2/4; medium 2/4, 2/4 (seeds 0, 1; seed 2 lost
+to the reboot). A beached robot made 160 pushes at a steady 33 deg nose-down
+and never came off: the chassis is high-centred on the body with the drive
+wheels unloaded, so no wheel command frees it. Prevention is the only lever
+(nav3).
+
+### Paging file and parallel runs (26/11 11:18 reboot)
+
+Paging file set to System managed (approved by Joe). After the reboot,
+`_scratch/parN.ps1` schedules one-run jobs over three environment copies
+(tags `<exp>_<W><seed>`, aggregated by `_scratch/agg.py`); the page file grows
+on demand (5 GB within minutes of three missions). Missions run at about half
+real time with three in parallel: ~20 min each, three at once.
