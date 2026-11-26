@@ -711,3 +711,32 @@ exp16 back out along the inbound trail after a report; exp17 flat, thin,
 untextured close-range reject; exp18 flank end-on bodies before reporting;
 exp15 own-report dedup on body position; exp14 partner false-positive zone
 2.5 -> 0.8 m. Also an exp08 baseline for seeds 3-5 (`exp08b`).
+
+### Baseline seeds 3-5 (exp08b)
+
+exp08 on seeds 3-5: small 3, 1, 2 (0 F); medium 1, 2 (2.5 F); medium s5 hit
+the wall-clock timeout at 545 s sim (physics slowdown) and is void, to be
+rerun. Six-seed exp08 baseline: **small 2.33/4 (0.67 F), medium 1.80/4 over
+five seeds (2.0 F)**. The 3-seed exp08 figure (2.67 small) was a lucky draw.
+
+### exp16: back out along the inbound trail after a report (kept)
+
+After each report, reverse 0.7 m along the robot's own recorded track (poses
+every 5 cm while level), steering the rear onto it; 6 s cap; tilt guard keeps
+priority. Offline kinematic check: retraces to within 0.07 m.
+Seeds 0-5: small 2.33/4 (sd 0.75, 0.33 F), medium 2.17/4 (sd 0.37, 1.83 F)
+against the baseline small 2.33 (0.67 F), medium 1.80 (2.0 F). No regression,
+medium +0.37 (about one standard error), half the small false reports.
+**Kept.** It does not stop beaching: 5 of 12 small robot-runs still end
+beached or flipped, many away from any report.
+
+### exp17: flat/thin/untextured close-range reject (rejected)
+
+Rejects the crate seen in earlier runs, but the robots then report the same
+cart from other angles where the blob's saturation std is 7.9-8.0 (thickness
+0.02-0.03 m), just above the 6.8 cut, and new phantoms appear 2.3-4.5 m from
+any victim. Seeds 0-5 small 2.17 (0.83 F); medium seeds 0-4 1.60 (1.8 F).
+Regresses both. The threshold was fitted to these worlds (rule 7) and did
+not hold even on them. **Rejected.** No single vision feature separates the
+cart from true reports: thickness alone overlaps (true reports down to
+0.022 m).
