@@ -526,6 +526,11 @@ ARRIVE_VIDEO_M      = 1.6    # victim estimates: close enough to look around
 BACKOUT             = True   # exp16: retrace inbound trail after a report
 BACKOUT_M           = 0.7    # exp16: trail length to retrace
 BACKOUT_TIMEOUT_S   = 6.0    # exp16
+REPO_MATCH          = True   # exp19: estimate must match the body in view
+REPO_MATCH_M        = 1.0    # exp19
+SEEN_BODY           = True   # exp20: paint every seen body as low obstacle
+SEEN_BODY_MAX_M     = 2.0    # exp20: only well-measured depths
+SEEN_BODY_EVERY_S   = 0.5    # exp20
 SECOND_LOOK         = True   # exp08: re-scan a missed estimate from another side
 SECOND_LOOK_R_M     = 1.2    # vantage distance from the estimate
 SCAN_NEAR_M         = 3.0
@@ -1785,7 +1790,7 @@ class SARRobot:
                              "tex_v": tex_v, "tex_s": tex_s, "thick_m": thick_m,
                              "depth": min_depth, "blob": blob_frac,
                              "ratio": ratio, "med_h": med_h, "low_h": low_h,
-                             "width_m": width_m}
+                             "width_m": width_m, "x_offset": x_offset}
         return base_conf, min_depth, x_offset
 
     def _vision_reject(self, why, **fields):
@@ -1935,6 +1940,13 @@ class SARRobot:
             # for the scored marker than the body we are parked against. If an
             # unreported estimate is nearby, walk to it and report from there.
             est, d_est = self._nearest_estimate()
+            if est is not None and REPO_MATCH:
+                _bx = self.x + (depth + 0.3) * math.cos(self.theta)
+                _by = self.y + (depth + 0.3) * math.sin(self.theta)
+                if math.hypot(est[0] - _bx, est[1] - _by) > REPO_MATCH_M:
+                    print(f"[{self.robot_id}] Estimate ({est[0]:.2f},{est[1]:.2f}) "
+                          f"is not this body's - reporting from here")
+                    est = None
             if est is not None and REPOSITION_MIN_M < d_est <= REPOSITION_MAX_M:
                 self._repositioning   = est
                 self._repo_deadline   = now + REPOSITION_TIMEOUT_S
@@ -2489,6 +2501,48 @@ class SARRobot:
             a += NAV_RES
         self._path = None
 
+    def _seen_body_step(self):
+        """exp20: paint the footprint of any body in view (see header)."""
+        now = self.robot.getTime()
+        if now < getattr(self, "_seen_next", 0.0):
+            return
+        self._seen_next = now + SEEN_BODY_EVERY_S
+        if (self._homing or self._repositioning is not None
+                or self._nav_wall is None or self._tilt_deg_now > 4.0):
+            return
+        conf, depth, xo = self._camera_victim_confidence()
+        if conf < APPROACH_ENTER_CONF or not (math.isfinite(depth)
+                                              and depth <= SEEN_BODY_MAX_M):
+            return
+        try:
+            hf = float(self._camera.getFov())
+        except Exception:
+            hf = 1.0
+        bearing = -math.atan(xo * math.tan(hf * 0.5))
+        wm = (self._last_vision or {}).get("width_m", float("nan"))
+        wm = wm if math.isfinite(wm) else 0.6
+        half = min(0.9, max(0.3, wm / 2.0 + 0.1))
+        deep = 0.6 if wm > 0.9 else 1.3
+        th = self.theta + bearing
+        ca, sa = math.cos(th), math.sin(th)
+        a = max(0.30, depth - 0.05)
+        painted = 0
+        while a <= depth + deep:
+            l = -half
+            while l <= half:
+                r, c = self._w2c(self.x + a * ca - l * sa, self.y + a * sa + l * ca)
+                if not (0 <= r < self._nav_N and 0 <= c < self._nav_N):
+                    l += NAV_RES
+                    continue
+                low = getattr(self, "_nav_low", None)
+                if low is None or not low[r, c]:
+                    painted += 1
+                self._low_mark(r, r + 1, c, c + 1)
+                l += NAV_RES
+            a += NAV_RES
+        if painted > 4:
+            self._path = None
+
     def _ir_front_m(self):
         """Nearest reading of the two front IR sensors (0.053 m mount height —
         sees stairs/rubble below the lidar plane). inf when clear."""
@@ -2964,6 +3018,8 @@ class SARRobot:
             self._update_map_from_lidar()
             self._learned_map_step()
             self._vision_telemetry()
+            if SEEN_BODY:
+                self._seen_body_step()
 
             # ── Tilt guard ── (before any driving state can act)
             now_g = self.robot.getTime()

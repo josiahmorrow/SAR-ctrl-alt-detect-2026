@@ -1,0 +1,2 @@
+tag,world,run,seed,mission_s,victims_found,victims_total,overall,finding,efficiency,coordination,extraction,ratio,time_score,confidence,avg_time_s,dist_score,dist_per_victim,robots_contributing,map_score,victim_est_score,avg_loc_err_m,total_distance_m,messages,coverage_pct,explore_events,abandoned,tilt_events,found_times,reports,false_reports,wall_clock_s,status
+exp23_M4,medium,1,4,600,3,4,0.553,0.657,0.029,1.0,0.451,0.75,0.472,0.75,95.0,0.022,95.0,2,0.262,0.639,0.95,284.9,4,57,0,10,696,31.6 109.4 144.1,4,1,1233.3,ok
