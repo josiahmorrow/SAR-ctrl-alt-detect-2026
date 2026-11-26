@@ -776,3 +776,18 @@ same victim: small s0 re-reported v1 four times, s2 twice, s5 once (all
 "dup", 0.28-0.72 m from v1). Small false reports up from 0.67 to 1.17, finds
 down. **Rejected.** Adjacent victims need a dedup cue that is stable across
 views (or a second report only when two distinct bodies are seen at once).
+
+### exp14: partner false-positive zone 2.5 -> 0.8 m (rejected)
+
+Seeds 0-5 small 2.00/4 (0.33 F); medium seeds 0-4 1.80/4 (2.0 F). Medium
+equal to baseline, small down 0.33. **Rejected.** The partner zone is not
+what costs finds in these runs.
+
+### Five-experiment summary (exp14-exp18), 26/11 20:50
+
+Baseline exp08, 6 seeds at 600 s: small 2.33/4, medium 1.80/4.
+Kept: exp16 (trail back-out). Rejected: exp14, exp15, exp17, exp18.
+Consecutive experiments without improvement since exp16: 4.
+Queued (jobs5, on exp08+exp16): exp08 medium s5 rerun, exp19 (reposition
+only to an estimate that matches the body in view), exp20 (paint every body
+seen within 2 m as a low obstacle).
