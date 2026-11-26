@@ -655,3 +655,59 @@ Paging file set to System managed (approved by Joe). After the reboot,
 (tags `<exp>_<W><seed>`, aggregated by `_scratch/agg.py`); the page file grows
 on demand (5 GB within minutes of three missions). Missions run at about half
 real time with three in parallel: ~20 min each, three at once.
+
+### nav3: depth-camera low obstacles (first version withdrawn)
+
+Project depth pixels 7-30 cm above the floor (planar depth model, level
+chassis, <1.8 m) into the persistent low-obstacle layer. First three runs:
+small s0 0/4, small s1 3/4, medium s0 3/4. Small s0 shows the flaw: anything
+that moves (the partner robot beside the start, which is painted before its
+first position broadcast) stays an obstacle for good; robot2 spent the run
+"trapped" 4.3 m from v1's estimate. Withdrawn.
+
+### nav3b: the same with free-space clearing
+
+Depth layer kept separately as log-odds per cell: +1.0 per scan with enough
+returns in the band, -0.6 per scan where the camera sees floor (|z| < 3 cm),
+obstacle while > 1.5. The partner or an opened door is cleared once the
+camera sees floor there again. Running: 6 seeds per world (`nav3b_*`).
+
+Result, seeds 0-5 at 600 s: small 2.17/4 (sd 0.69, false 0.17), medium
+1.67/4 (sd 0.75, false 1.67) against exp08 seeds 0-2 small 2.67 (1.33 F),
+medium 2.00 (1.67 F). Fewer false reports on small, fewer finds on both.
+**Rejected.**
+
+### Failure census, 26/11 (offline, ground truth used for evaluation only)
+
+Three offline tools in `_scratch/` (not part of the controller):
+`beach.py` (per robot: time tilted, beached/flipped and when), `falses.py`
+(every report: verdict, true distance to the nearest victim, dup/far/phantom),
+`repfeat.py` (vision features in the 2 s before each report, by verdict).
+Over exp07, exp08, exp13, nav1 and nav3b runs:
+
+- The flyover estimates are good (small 0.66 m mean error) and the video
+  waypoints put robots beside the victims. The losses are local.
+- **Beaching dominates small.** nav3b small: 7 of 12 robot-runs end beached;
+  exp08 small 2 of 6. Many are flips (median tail tilt 76-131 deg), the
+  rest sit at 13-25 deg where the tilt guard holds a reverse that never
+  frees them. The typical sequence (exp08 small s1 robot2): report between
+  two bodies 1.4 m apart, a 0.2 m straight reverse, then the next leg's
+  turn presses on the body for 6 s (front IR 0.17-0.45 m) until it mounts.
+- **Medium phantoms.** One spot, a platform cart with plastic crates about
+  3.4 m from victim1, draws a false report in most medium runs. Its frames
+  have blob saturation std <= 6.5 and vertical thickness <= 0.052 m. No true
+  report has both. (World geometry was read offline to identify the object.)
+- **End-on reports just outside 1.0 m.** Medium victim3 is reported from
+  1.13-1.20 m with a 0.34-0.53 m wide blob: the body is seen feet first and
+  the scored point lies beyond the visible denim.
+- **Duplicates** of a robot's own earlier report after odometry drift
+  (exp08 small s0 robot2 at 216 s and 309 s).
+- The "no matching recording" preflight line on `*_dev` worlds is harmless:
+  `run_batch.py` restores the pristine per-world flyover outputs before each
+  run. The untouched worlds match by name.
+
+Queued from this (each on exp08, six seeds per world, `jobs4.txt`):
+exp16 back out along the inbound trail after a report; exp17 flat, thin,
+untextured close-range reject; exp18 flank end-on bodies before reporting;
+exp15 own-report dedup on body position; exp14 partner false-positive zone
+2.5 -> 0.8 m. Also an exp08 baseline for seeds 3-5 (`exp08b`).
