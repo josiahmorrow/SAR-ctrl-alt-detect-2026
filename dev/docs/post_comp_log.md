@@ -913,3 +913,28 @@ Causes seen in the logs (offline tool `_scratch/traj.py`):
   are extended lines. Not run.
 nav4 as built: **not kept**. nav4c = nav4 with LO_HIT 1.2 (one hit makes a
 wall, one clear pass removes it) and 180 sampled beams; running from 06:15.
+
+### nav4c (rejected) and a correction
+
+nav4c, small seeds 0-4: 1.40/4 (0.8 F); medium seeds 0-3: 2.75/4 (1.0 F).
+Timeouts per run small 17, medium 12.2. Small is worse still; medium is
+level with exp24 (2.83).
+
+**Correction to the nav4 entry:** the "sparse startup map" diagnosis was
+wrong. The old binary map paints a 3x3 patch per lidar hit, the log-odds map
+one cell, so "1003 wall cells" (old) and "87-95" (nav4/nav4c) count the same
+~100 hit cells. nav4c's change (LO_HIT 1.2, 180 beams) moved the count from
+69-86 to 87-95 and did not help. The startup map was not the problem.
+
+What the logs do show (traj.py, nav4c small s1 robot1 vs exp24 s1 robot1):
+the new planner takes a different first route to the north-west estimate
+(straight north-east into furniture low enough that only the IR sees it,
+30 s lost, then a dead end), reaches the estimate's area later from the
+east and never gets the line of sight that the old route gave at t=24 s.
+Small's victims sit in furnished rooms where the route chosen decides what
+the camera sees; on medium the new planner is neutral to slightly positive.
+
+Next, a 3-seed ablation on the kept stack (exp24) to find which part hurts:
+nav4d = log-odds map only (old soft planner, wall-following on);
+nav4e = old binary map + hard inflated planner + route re-check, unknown
+cost 1.0, wall-following on.
