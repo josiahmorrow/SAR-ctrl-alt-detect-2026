@@ -829,3 +829,21 @@ six runs. Beached robot-runs: small 4/12 (was 5/12), medium 3/12 (was 2/12).
 Under the protocol medium regressed: **rejected**, but by one victim in six
 runs, inside run-to-run noise; worth retesting combined with exp21 later.
 No-improvement streak since exp16: 6.
+
+### exp21 (exp19 + estimate-backed second victim) (rejected)
+
+When a homing candidate is within 1.5 m of a prior report, allow it if the
+body in view (pose + depth + 0.3 m) is within 1.2 m of a flyover estimate
+not claimed by an own report; each own report claims the estimate nearest
+its body. Seeds 0-5 small 2.00/4 (1.00 F), medium 2.17/4 (1.50 F).
+Medium identical to exp19. Small: the v1 estimate (2.94,-3.12) lies within
+1.2 m of BOTH small bodies, so after v2 is reported the robot re-homes on
+v2 under v1's estimate and re-reports it (dup at 0.55-0.64 m in s0, s2,
+s5), or loops homing/aborting on it (hundreds of attempts in s1, s2, s4).
+A 1.2 m match radius cannot separate two bodies 1.4 m apart with estimates
+of ~0.7 m error. **Rejected.** No-improvement streak: 7.
+
+exp22 (exp21 + exp20) was cancelled after starting, since it carries the
+same defect; its three started runs are orphaned and not scored. Replaced
+by exp23 = kept stack + exp19 + exp20 (the two borderline changes together:
+exp20 helped small, exp19 removed medium's far reports).
