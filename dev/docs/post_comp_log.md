@@ -847,3 +847,30 @@ exp22 (exp21 + exp20) was cancelled after starting, since it carries the
 same defect; its three started runs are orphaned and not scored. Replaced
 by exp23 = kept stack + exp19 + exp20 (the two borderline changes together:
 exp20 helped small, exp19 removed medium's far reports).
+
+### exp23 = exp08 + exp16 + exp19 + exp20 (kept)
+
+The two borderline changes together: report from the body unless the
+flyover estimate matches it (exp19), and paint every body seen within 2 m
+as a low obstacle (exp20). Seeds 0-5 at 600 s:
+
+| | small found (F/run) | medium found (F/run) |
+|---|---|---|
+| baseline exp08 | 2.33 (0.67) | 1.83 (1.83) |
+| kept exp16 | 2.33 (0.33) | 2.17 (1.83) |
+| exp19 alone | 2.00 (0.33) | 2.17 (1.50) |
+| exp20 alone | 2.50 (0.17) | 2.00 (1.50) |
+| **exp23** | **2.67 (0.17), sd 0.47** | **2.67 (0.83), sd 0.47** |
+
+Both worlds up; no seed below 2/4. The pair works where neither did alone:
+reporting from the body no longer drives the robot off v2 onto the
+adjacent v1 estimate, and painting the seen-but-blocked v1 keeps the next
+leg from climbing it, so v1 is found later from another side (small s2,
+s3; medium victim1 now found in s1 and s2). Remaining falses: the medium
+cart phantom (4 of 6 runs) and two 1.02-1.15 m near misses. Beached
+robot-runs: small 3/12, medium 2/12.
+**Kept** (commit 8eb581d). No-improvement streak reset to 0.
+Still below target: 67% on both worlds, no world at 4/4 twice.
+
+Next: exp24 (escalate a failed straight reverse in the 11-25 deg band to
+the rocking recovery), on exp23.
