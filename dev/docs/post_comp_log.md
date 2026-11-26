@@ -791,3 +791,27 @@ Consecutive experiments without improvement since exp16: 4.
 Queued (jobs5, on exp08+exp16): exp08 medium s5 rerun, exp19 (reposition
 only to an estimate that matches the body in view), exp20 (paint every body
 seen within 2 m as a low obstacle).
+
+### Baseline medium s5 rerun (exp08r)
+
+2/4 (1 F). Six-seed exp08 baseline: **small 2.33/4 (0.67 F), medium
+1.83/4 (1.83 F)**.
+
+### exp19 (on exp08+exp16): reposition only to an estimate matching the body in view (rejected)
+
+Before driving from the locked denim to the nearest flyover estimate, check
+that the estimate lies within 1.0 m of the body's centroid (pose + depth +
+0.3 m along the camera axis); otherwise report from where we are.
+Seeds 0-5 small 2.00/4 (0.33 F), medium 2.17/4 (1.50 F) against the kept
+stack exp16 small 2.33 (0.33 F), medium 2.17 (1.83 F).
+Medium: the 1.2-2.0 m "far" reports are gone (zero in six runs, against
+1-2 per run before) and false reports drop 1.83 -> 1.50; finds unchanged,
+because the remaining medium misses are victim1 (never reached) and the
+cart phantom. Small regresses: on small the estimate the robot used to
+drive to belongs to the ADJACENT victim (v1 estimate between v1 and v2), so
+the old reposition accidentally reported v1 from v2 and then v2 later;
+reporting from the body finds v2 and then the near-prior-report gate hides
+v1 for the rest of the run (s2: 1/4). **Rejected under the protocol**, but
+the medium mechanism is real. exp21 pairs it with a fix for the adjacency
+gate (one hypothesis: report from the body, and let an unclaimed flyover
+estimate vouch for a second victim next to a reported one).
