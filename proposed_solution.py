@@ -523,6 +523,9 @@ ARRIVE_VIDEO_M      = 1.6    # victim estimates: close enough to look around
 # the spot: if the victim is visible, homing takes over and closes to under
 # 0.75 m before reporting, so scanning early costs nothing and reporting still
 # requires real proximity.
+BACKOUT             = True   # exp16: retrace inbound trail after a report
+BACKOUT_M           = 0.7    # exp16: trail length to retrace
+BACKOUT_TIMEOUT_S   = 6.0    # exp16
 SECOND_LOOK         = True   # exp08: re-scan a missed estimate from another side
 SECOND_LOOK_R_M     = 1.2    # vantage distance from the estimate
 SCAN_NEAR_M         = 3.0
@@ -886,6 +889,9 @@ class SARRobot:
 
         # Confirmed victim positions (ours + partner's) — used for deduplication
         self._reported_positions = []
+        self._trail            = []      # exp16: recent level-ground poses
+        self._backout          = None    # exp16: points to retrace
+        self._backout_until    = 0.0     # exp16
 
         # Plan and order this robot's waypoints once at startup
         all_waypoints      = load_victim_waypoints()
@@ -1437,6 +1443,63 @@ class SARRobot:
 
     # ── Communication ─────────────────────────────────────────────────────
 
+    def _trail_step(self):
+        """exp16: record level-ground poses every 5 cm (last ~10 m)."""
+        if self._tilt_deg_now > 6.0:
+            return
+        if (not self._trail or math.hypot(self.x - self._trail[-1][0],
+                                          self.y - self._trail[-1][1]) > 0.05):
+            self._trail.append((self.x, self.y))
+            if len(self._trail) > 200:
+                del self._trail[:-200]
+
+    def _start_backout(self):
+        pts, acc = [], 0.0
+        px, py = self.x, self.y
+        for tx, ty in reversed(self._trail):
+            acc += math.hypot(tx - px, ty - py)
+            px, py = tx, ty
+            if math.hypot(tx - self.x, ty - self.y) > 0.08:
+                pts.append((tx, ty))
+            if acc >= BACKOUT_M:
+                break
+        if not pts:
+            return False
+        # Thin to ~10 cm spacing; the last point is the goal.
+        thin = [pts[0]]
+        for p in pts[1:]:
+            if math.hypot(p[0] - thin[-1][0], p[1] - thin[-1][1]) >= 0.10:
+                thin.append(p)
+        if thin[-1] != pts[-1]:
+            thin.append(pts[-1])
+        self._backout = thin
+        self._backout_until = self.robot.getTime() + BACKOUT_TIMEOUT_S
+        print(f"[{self.robot_id}] Backing out {acc:.2f} m along inbound trail")
+        return True
+
+    def _backout_step(self):
+        """Reverse with the rear steered onto the next trail point.
+        Returns True while the back-out owns the wheels."""
+        if not self._backout or self.robot.getTime() > self._backout_until:
+            if self._backout is not None:
+                self.stop()
+            self._backout = None
+            return False
+        tx, ty = self._backout[0]
+        if math.hypot(tx - self.x, ty - self.y) < 0.07:
+            self._backout.pop(0)
+            if not self._backout:
+                self.stop()
+                self._backout = None
+                return False
+            tx, ty = self._backout[0]
+        want = math.atan2(ty - self.y, tx - self.x) + math.pi   # rear first
+        err = (want - self.theta + math.pi) % (2.0 * math.pi) - math.pi
+        turn = max(-0.25, min(0.25, 0.8 * err))
+        base = -0.30 if abs(err) < 0.8 else -0.12
+        self.set_speeds(MAX_SPEED * (base - turn), MAX_SPEED * (base + turn))
+        return True
+
     def report_victim(self):
         """
         Send a victim-found message to the supervisor and broadcast to partner.
@@ -1468,7 +1531,9 @@ class SARRobot:
         # turn in place, and a skid-steer turn touching a lying body mounts
         # it (exp06 small s2: tilt began mid-turn, cmd=(3.1,-5.5)). Back
         # straight out first, reusing the tilt-escape reverse.
-        if LOW_PERSIST:
+        if BACKOUT and self._start_backout():
+            pass
+        elif LOW_PERSIST:
             self._tilt_escape_until = max(self._tilt_escape_until,
                                           self.robot.getTime() + POST_REPORT_BACK_S)
         print(f"[{self.robot_id}] Victim reported @ ({self.x:.2f}, {self.y:.2f})  "
@@ -2893,6 +2958,8 @@ class SARRobot:
             self.update_odometry()
             _k = min(1.0, (self.timestep / 1000.0) / TILT_EMA_TAU_S)
             self._tilt_deg_now += _k * (self._read_tilt() - self._tilt_deg_now)
+            if BACKOUT:
+                self._trail_step()
             self._read_squad_messages()
             self._update_map_from_lidar()
             self._learned_map_step()
@@ -2949,6 +3016,8 @@ class SARRobot:
                 self._tilt_hi_since = None
             if now_g < self._tilt_escape_until:
                 self.set_speeds(-MAX_SPEED * 0.5, -MAX_SPEED * 0.5)
+                continue
+            if BACKOUT and self._backout and self._backout_step():
                 continue
 
             # Startup 360° spin: let the lidar paint the foyer's REAL walls
