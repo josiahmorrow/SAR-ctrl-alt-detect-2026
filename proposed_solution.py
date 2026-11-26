@@ -531,6 +531,8 @@ REPO_MATCH_M        = 1.0    # exp19
 SEEN_BODY           = True   # exp20: paint every seen body as low obstacle
 SEEN_BODY_MAX_M     = 2.0    # exp20: only well-measured depths
 SEEN_BODY_EVERY_S   = 0.5    # exp20
+STUCK_WIGGLE        = True   # exp24: escalate a failed straight reverse
+STUCK_WIGGLE_AFTER_S = 4.0   # exp24
 SECOND_LOOK         = True   # exp08: re-scan a missed estimate from another side
 SECOND_LOOK_R_M     = 1.2    # vantage distance from the estimate
 SCAN_NEAR_M         = 3.0
@@ -3071,6 +3073,18 @@ class SARRobot:
             else:
                 self._tilt_hi_since = None
             if now_g < self._tilt_escape_until:
+                if (STUCK_WIGGLE and self._tilt_hi_since is not None
+                        and now_g - self._tilt_hi_since > STUCK_WIGGLE_AFTER_S):
+                    _cyc = ((now_g - self._tilt_hi_since - STUCK_WIGGLE_AFTER_S)
+                            % (RECOVER_MAX_S + RECOVER_REST_S))
+                    if _cyc < RECOVER_MAX_S:
+                        _ph = int(_cyc / RECOVER_PULSE_S) % 4
+                        _vl, _vr = ((-0.45, -0.45), (0.45, 0.45),
+                                    (-0.2, 0.5), (0.5, -0.2))[_ph]
+                        self.set_speeds(MAX_SPEED * _vl, MAX_SPEED * _vr)
+                    else:
+                        self.stop()
+                    continue
                 self.set_speeds(-MAX_SPEED * 0.5, -MAX_SPEED * 0.5)
                 continue
             if BACKOUT and self._backout and self._backout_step():

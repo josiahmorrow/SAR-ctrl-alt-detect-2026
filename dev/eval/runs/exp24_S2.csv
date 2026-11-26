@@ -1,0 +1,2 @@
+tag,world,run,seed,mission_s,victims_found,victims_total,overall,finding,efficiency,coordination,extraction,ratio,time_score,confidence,avg_time_s,dist_score,dist_per_victim,robots_contributing,map_score,victim_est_score,avg_loc_err_m,total_distance_m,messages,coverage_pct,explore_events,abandoned,tilt_events,found_times,reports,false_reports,wall_clock_s,status
+exp24_S2,small,1,2,600,3,4,0.611,0.658,0.036,1.0,0.642,0.75,0.474,0.75,94.6,0.036,83.4,2,0.56,0.724,0.66,250.1,4,47,0,11,837,31.9 94.5 157.5,4,1,1418.4,ok
