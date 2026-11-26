@@ -815,3 +815,17 @@ v1 for the rest of the run (s2: 1/4). **Rejected under the protocol**, but
 the medium mechanism is real. exp21 pairs it with a fix for the adjacency
 gate (one hypothesis: report from the body, and let an unclaimed flyover
 estimate vouch for a second victim next to a reported one).
+
+### exp20 (on exp08+exp16): every body seen within 2 m is a low obstacle (rejected, borderline)
+
+Every 0.5 s while not homing, a candidate passing the vision gate at a
+finite depth <= 2 m (level chassis) has its footprint (camera bearing,
+measured depth, width-dependent extent) painted into the persistent low
+layer, and the route is replanned.
+Seeds 0-5 small 2.50/4 (0.17 F, s2 4/4), medium 2.00/4 (1.50 F) against the
+kept stack small 2.33 (0.33 F), medium 2.17 (1.83 F). Total finds equal
+(27/48 both), false reports 10 vs 13, small up, medium down one victim over
+six runs. Beached robot-runs: small 4/12 (was 5/12), medium 3/12 (was 2/12).
+Under the protocol medium regressed: **rejected**, but by one victim in six
+runs, inside run-to-run noise; worth retesting combined with exp21 later.
+No-improvement streak since exp16: 6.
