@@ -874,3 +874,25 @@ Still below target: 67% on both worlds, no world at 4/4 twice.
 
 Next: exp24 (escalate a failed straight reverse in the 11-25 deg band to
 the rocking recovery), on exp23.
+
+### exp24 (on exp23): escalate a failed straight reverse to rocking (kept)
+
+In the 11-25 deg band the tilt guard held a straight reverse for as long as
+the chassis stayed tilted. After 4 s without freeing, switch to the
+fwd/back/turn pulse cycle used above 25 deg. Seeds 0-5 small 2.67/4
+(0.17 F, identical seeds to exp23), medium 2.83/4 (0.83 F; s0 4/4, the first
+full medium run). Some robots now come off (small s1, s5 end free after
+346-378 s tilted); medium s3/s5 robot2 still rocks at 13 deg to the end.
+No regression, medium +0.17. **Kept** (commit 0bfa437).
+
+### nav4: planner replacement (approved by Joe 27/11 04:03)
+
+Built on exp23 (exp24 touches only the tilt branch and will be folded in if
+nav4 is kept). Stage 1 = nav1 (log-odds occupancy, chassis-inflated hard
+A*, goals moved out of obstacles) plus make_nav4.py: unseen cells cost 1.5x
+seen floor; hard routes re-validated against the current map every 0.5 s
+over the next 2.5 m and re-planned the moment they are blocked; Bug2
+wall-following off; A* heuristic weight 1.3. Offline (test_nav4.py,
+synthetic maps): 1 m door passed, 0.4 m door refused, goal inside a body
+moved out, new wall across a route detected, 24 m cluttered map planned in
+5 ms, worst case 174 ms. Running seeds 0-5 from 04:25.
