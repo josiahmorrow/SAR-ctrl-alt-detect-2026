@@ -740,3 +740,24 @@ Regresses both. The threshold was fitted to these worlds (rule 7) and did
 not hold even on them. **Rejected.** No single vision feature separates the
 cart from true reports: thickness alone overlaps (true reports down to
 0.022 m).
+
+exp17 medium s5 completed later: 2/4; six-seed medium 1.67 (1.5 F). Verdict
+unchanged.
+
+### exp18: flank end-on bodies before reporting (rejected, mostly inert)
+
+If the locked denim blob is narrower than 0.45 m (body seen end-on), step
+0.6 m sideways to the side with more lidar room, drive forward to abreast
+the far end of the body, and report there. Seeds 0-5 small 1.83/4 (0.5 F),
+medium seeds 0-4 2.00/4 (2.2 F). It fired once in eleven runs (medium s1,
+which then found 4/4). The measured width at lock is usually 0.55-0.67 m
+even where the report lands 1.3 m away, so the end-on test rarely holds.
+The small drop (2.33 -> 1.83) comes from runs where it never fired: chaotic
+divergence, not the change. Under the protocol, small regressed:
+**rejected.**
+
+What the far reports actually are (exp18 M3 robot1, t=133): denim locked
+at 0.74 m, width 0.67, then "repositioning toward estimate (10.81,-24.86)".
+That flyover estimate lies away from the body in view, so the robot drives
+off the victim and reports 1.32 m from it. The same happens for medium
+victim2 in exp08b M3/M4, exp16 M0/M3/M4 and exp18 M3/M4. This is exp19.
