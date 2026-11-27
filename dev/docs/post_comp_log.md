@@ -983,3 +983,21 @@ reported coordinates are not used. Only where the robot parks matters.
 exp25 queued: flank a body that extends away from the robot, detected by
 the depth spread of its denim (p90 - p10 >= 0.35 m) instead of exp18's
 width test. Also logs depth, width and depth spread at every report.
+
+exp24x final (seeds 6-11): small 2.17 (0.67 F), medium 2.50 (1.67 F).
+Kept stack over 12 seeds: small 2.42/4 (60%), medium 2.67/4 (67%).
+
+### exp25: flank bodies by denim depth spread (rejected)
+
+Seeds 0-5: small 2.83/4 (0.17 F; s5 4/4), medium 2.33/4 (1.83 F), against
+exp24 on the same seeds 2.67 (0.17 F) / 2.83 (0.83 F). Small up, medium
+down 0.5: **rejected** under the protocol.
+What the new per-report telemetry shows: the flank fired 9 times in 12
+runs, 6 of them in medium on the crate cart at (15,-11) robot frame, whose
+denim spreads 0.49-0.87 m in depth; flanking it moved the phantom report
+from 3.4 m to 4.5 m from victim1, still false. True reports mostly show a
+spread of 0.15-0.31 m, but several true small reports show 1.0-1.6 m
+(denim of two bodies in one blob, or a body seen along its length), so the
+spread does not single out the near-miss cases either. Medium v3's near
+miss (1.15 m) recurred in s5.
+No-improvement streak since exp24: 5 (nav4, nav4c, nav4d, nav4e, exp25).
