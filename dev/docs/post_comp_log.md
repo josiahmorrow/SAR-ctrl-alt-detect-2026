@@ -1051,3 +1051,39 @@ trade under rule 7. No-improvement streak since exp24: 6.
 
 Snapshot run queued (`snapS6`: kept stack, small seed 6, every candidate
 frame saved once a second) to see what robot2 sees of v1 after reporting v2.
+
+### snapS6: why small v1 is lost (finding, 27/11/2026)
+
+Kept stack, small seed 6, 3/4 (v1 missed again). The snapshot frames after
+the v2 report show only one body in view at a time; v1 and v2 never appear
+as two separate denim blobs in one frame, so a per-frame "two blobs" test
+would not help. The log shows the real chain:
+
+1. robot2 homes toward the v1 flyover estimate (2.94,-3.12), meets the v2
+   body first and REPO_MATCH prints "Estimate (2.94,-3.12) is not this
+   body's - reporting from here". The v2 report is true.
+2. The homing branch then advances the itinerary because the robot is
+   within 2.5 m of its target, so the v1 waypoint is dropped even though
+   the report has just disclaimed it. (It is also 1.17 m from the report
+   pose, inside WP_RETIRE_M 1.2.)
+3. Later v1 sightings are inside HOME_BLOCK_R_M (1.5 m) of the v2 report
+   pose: 147 candidate frames, all "near-prior-report" or cooldown.
+
+The same disclaimer for (2.94,-3.12) appears in 5 of 6 exp24 small runs and
+in most exp25/26 small runs, so this is the systematic v1 loss, not noise.
+
+### exp27: keep and licence a disclaimed estimate (queued 16:33)
+
+When REPO_MATCH disclaims an estimate at report time, record (estimate,
+report pose). That waypoint is not advanced or retired while open (no other
+report within 1.0 m of it). Homing near a prior report, and the report-time
+1.0 m dedup, are relaxed only when the body in view projects (same pose +
+(depth+0.3) projection as REPO_MATCH) within REPO_MATCH_M of an open
+disclaimed estimate and no other report is near the robot; the exact-double
+guard (0.5 m) stays. General justification: the disclaimer is positive
+geometric evidence of a second body near the first, from two independent
+sources (flyover estimate, on-board range); nothing is world-keyed. Risk:
+a flyover estimate more than 1 m off its body could license a duplicate,
+but the licence needs a body projecting within 1 m of that estimate and the
+disclaimed body by construction projected more than 1 m from it. Seeds 0-5,
+small and medium, 600 s.
