@@ -1114,3 +1114,43 @@ revisit only that one estimate (not every disclaimed one) and get the
 robot out of the 1.5 m homing block; I am not pursuing it now, because the
 cost on medium shows how easily changes here disturb the route.
 No-improvement streak since exp24: 7 (stop at 10).
+
+### Joe's decision 27/11 19:31: option (d)
+
+Spend the remaining experiments before the stop rule (streak 7 of 10) on the
+end-on near misses and the medium crate phantom.
+
+End-on near misses (24 kept runs): the reports that land 1.0-1.2 m from a
+body seen end-on are not separable from true reports by any logged feature
+(width 0.33-0.55, depth spread 0.25, colour ratio 0.46-0.76 all overlap
+true reports), and the marker offset differs per victim: flanking moved
+medium v2 reports from 0.69 m to 1.05-1.09 m in exp25. No sound trigger, so
+no experiment on this yet.
+
+### Crate texture check (snapM3, finding)
+
+Snapshot run, kept controller, medium seed 3 (2/4, crate phantom at 73 s at
+(15.38,-12.42) as usual). texcheck.py measures, on the eroded denim blob,
+high-pass energy hp = mean |V - blur5(V)| / mean V. Woven denim carries
+fine luminance detail at close range; the crate is flat shaded.
+
+| Frames | Depth | hp |
+|---|---|---|
+| Crate (report approach) | 0.75-0.78 m | 0.0047-0.0070 |
+| Crate (later look) | 1.03-1.12 m | 0.0072-0.0094 |
+| Medium v4, v2 | <= 0.9 m | 0.0136-0.0162 |
+| Small v2, v3, v4 | <= 0.9 m | 0.0103-0.0334 |
+
+std S / std V and Laplacian variance overlap; hp separates at report range
+with a gap (0.0070 vs 0.0103). Caveat: only one crate approach (3 frames)
+at report range, and the lowest victim (small v4, partly occluded) sits
+closest to the cut.
+
+### exp28: refuse a flat-shaded surface at report time (queued 20:12)
+
+Once the report streak completes (depth <= 0.75 m), if hp < 0.0085 the
+robot does not report, records the surface's projected position and will
+not start homing on anything projecting within 1.0 m of it again. Seeds
+0-5, small and medium, 600 s. What to watch: whether the crate is caught
+from every approach, and whether any true victim (small v4 above all) is
+refused.
