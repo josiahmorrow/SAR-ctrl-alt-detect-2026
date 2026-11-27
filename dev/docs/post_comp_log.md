@@ -1039,3 +1039,15 @@ medium baseline (2.83) reads high against its 12-seed value (2.67).
 Protocol refinement for mixed results (one world up or level, the other
 down by <= 0.5): extend to seeds 6-11 and decide on 12 seeds against
 exp24 + exp24x. Running `exp26x`.
+
+exp26 seeds 6-10 small 2, 3, 3, 3, 1 (s11 running); seeds 6-9 medium 2, 3,
+2, 2. Over 11 / 10 seeds: small 2.55 (kept 2.42), medium 2.30 (kept 2.67).
+Medium cannot reach the kept stack's 12-seed figure with the two runs left.
+**Rejected.** It did what it was aimed at: small v4 found in 8 of 11 runs
+(kept stack 6 of 12). Medium loses on the same failures as before (crate
+phantom, v3 near misses), now reached earlier in some runs; a gate that
+helps one world's occluded victim and costs the other is a world-tuned
+trade under rule 7. No-improvement streak since exp24: 6.
+
+Snapshot run queued (`snapS6`: kept stack, small seed 6, every candidate
+frame saved once a second) to see what robot2 sees of v1 after reporting v2.

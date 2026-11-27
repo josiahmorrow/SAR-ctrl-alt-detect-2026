@@ -1,0 +1,2 @@
+tag,world,run,seed,mission_s,victims_found,victims_total,overall,finding,efficiency,coordination,extraction,ratio,time_score,confidence,avg_time_s,dist_score,dist_per_victim,robots_contributing,map_score,victim_est_score,avg_loc_err_m,total_distance_m,messages,coverage_pct,explore_events,abandoned,tilt_events,found_times,reports,false_reports,wall_clock_s,status
+exp26x_S8,small,1,8,600,3,4,0.567,0.737,0.029,0.5,0.642,0.75,0.47,0.99,95.4,0.023,94.5,1,0.56,0.724,0.66,283.4,3,83,0,15,30,30.2 87.0 168.9,3,0,1273.2,ok
