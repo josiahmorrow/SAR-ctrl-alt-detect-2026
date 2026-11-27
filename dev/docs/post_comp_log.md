@@ -1154,3 +1154,26 @@ not start homing on anything projecting within 1.0 m of it again. Seeds
 0-5, small and medium, 600 s. What to watch: whether the crate is caught
 from every approach, and whether any true victim (small v4 above all) is
 refused.
+
+### exp28 result: rejected (refuses a real victim)
+
+Seeds 0-5: small 2.83/4 (0.17 F), medium 2.33/4 (0.33 F), against exp24
+2.67 (0.17 F) / 2.83 (0.83 F). The crate was refused in every medium run
+(hp 0.0037-0.0062 at about (15.5,-11.5) and (13-14,-12)) and the crate
+phantom is gone. But medium victim 3 (11.9,-20.4) was refused too: hp
+0.0044-0.0077 in M0, M4 and M5, the same range as the crate. v3 was found
+in 0 of 6 runs (kept: 2 of 6), and in M0 and M4 robot1 spent most of the
+mission re-homing on v3 and refusing it (about 200 refusals in M4: the scan
+hand-off starts homing without the flat-spot check). Small had no
+refusals; its 2.83 is noise.
+
+So the fine-texture measure does not separate the crate from real denim:
+one victim of eight across the two worlds is as flat in the image as the
+crate (likely lighting, though not checked). The single crate approach in
+snapM3 made the margin look wider than it is. A cut that refuses one real
+victim per world in the dev set would do the same on unseen worlds.
+**Rejected.** No-improvement streak since exp24: 8 (stop at 10).
+
+Both targets of Joe's option (d) are now without a sound hypothesis: the
+end-on near misses have no separating feature, and the crate is not
+separable from medium v3 by colour, saturation, thickness or fine texture.
