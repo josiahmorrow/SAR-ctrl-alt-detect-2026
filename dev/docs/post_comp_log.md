@@ -1195,3 +1195,26 @@ victims, which are lost earlier. A sound fix exists (return along the
 robot's own trail, or plan the way back with A*, and stop exploration
 choosing frontiers outside the envelope) but it would only change late
 600 s development runs. Not pursued.
+
+### Joe's direction 28/11/2026 08:10: fix large, work at 180 s, target 90% on all worlds
+
+Joe (who set the rules) directed: repair the large world defect, bring the
+mission length down to 180 s now, and keep experimenting toward 90% on all
+three worlds. This supersedes the 600 s step-down curriculum and the
+10-experiment stop rule, and it changes rule 2 for large only:
+
+- Large runs on `worlds/large_world_fix.wbt`: the organisers' world minus
+  the second coplanar `Floor` node (`floor(2)`), with the dev supervisor
+  (scoring identical, mission length from SAR_MISSION_S). `run_batch.py`
+  uses it by default; `SAR_LARGE_FIX=0` runs the untouched original.
+  Every large figure from here on is on the repaired copy and must be
+  labelled so: it is not a result under the original rules. The `Floor`
+  PROTO's collision shape is a plane, so removing one of two coincident
+  planes leaves the ground intact; only the concrete texture west of
+  x = -5.5 is lost from the camera's view.
+- Small and medium at 180 s still run the untouched originals.
+- Unchanged: 1.0 m radius, channel 43 contract, no world-keyed logic, no
+  ground truth in the controller, no network, supervisor scoring untouched.
+
+Baseline queued (`b180`): kept controller (exp24), seeds 0-5, 180 s, small
+and medium untouched, large repaired.

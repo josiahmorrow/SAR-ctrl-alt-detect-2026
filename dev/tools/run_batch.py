@@ -191,7 +191,18 @@ def run_one(world, tag, n, timeout_s=None, pristine=True):
     log_path = os.path.join(log_dir, f"{world}_{n}.log")
     tee_dir = os.path.join(log_dir, f"{world}_{n}_tee")
     shutil.rmtree(tee_dir, ignore_errors=True)
-    if MISSION_S == 180:
+    # Joe 28/11/2026: large is run on a repaired DEV copy (large_world_fix.wbt
+    # = the organisers' world minus the second coplanar Floor node, dev
+    # supervisor with identical scoring). SAR_LARGE_FIX=0 runs the untouched
+    # original instead. Results on the repaired copy are labelled as such.
+    large_fix = (world == "large"
+                 and os.environ.get("SAR_LARGE_FIX", "1") != "0")
+    if large_fix:
+        wbt = os.path.join(REPO, "worlds", "large_world_fix.wbt")
+        if not os.path.exists(wbt):
+            sys.exit("!! worlds/large_world_fix.wbt missing")
+        print("   [large] repaired dev copy (no floor(2))")
+    elif MISSION_S == 180:
         wbt = os.path.join(REPO, "worlds", WORLDS[world])        # untouched
     else:
         wbt = os.path.join(REPO, "worlds", f"{world}_world_dev.wbt")
@@ -215,7 +226,7 @@ def run_one(world, tag, n, timeout_s=None, pristine=True):
         live = open(log_path, "w", encoding="utf-8", errors="replace")
         env = dict(os.environ, PYTHONUTF8="1", PYTHONIOENCODING="utf-8",
                    PYTHONUNBUFFERED="1", SAR_TEE_DIR=tee_dir, **EXTRA_ENV,
-                   **({} if MISSION_S == 180 else
+                   **({} if (MISSION_S == 180 and not large_fix) else
                       {"SAR_MISSION_S": str(MISSION_S)}),
                    WEBOTS_HOME=os.path.normpath(os.path.join(
                        os.path.dirname(WEBOTS), "..", "..", "..")))
