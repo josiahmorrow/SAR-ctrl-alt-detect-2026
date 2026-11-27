@@ -962,3 +962,24 @@ No-improvement streak since exp24: 4 (nav4, nav4c, nav4d, nav4e).
 
 Queued: exp24 seeds 6-11 (`exp24x`) to tighten the kept stack's estimate
 (n=12 per world) before choosing between remaining local fixes.
+
+### exp24 on seeds 6-11 (exp24x): seeds 0-5 flattered the kept stack
+
+exp24x small 2.17/4 (0.67 F, seeds 6-11); medium 2.50/4 (1.75 F, seeds
+6-9, 10-11 still running). Twelve-seed estimate of the kept stack: small
+about 2.4/4 (60%), medium about 2.7/4 (67%). Seeds 0-5 read 2.67 / 2.83.
+
+Loss ranking over the kept stack's runs (falses.py, ground truth offline):
+- small: v2 found in 11/12 runs, v3 ~10/12, v4 ~6/12, v1 ~3/12 (v1 lies
+  1.4 m from v2);
+- medium: v4 10/10, v2 ~9/10, v1 ~6/10, v3 ~3/10;
+- near misses (report 1.04-1.31 m from the node): medium v3 four times
+  (1.15-1.21 m), small five times;
+- medium crate phantom: 8 of 10 runs.
+Scoring note (supervisor `_check_victim_proximity`, read only): the verdict
+uses the robot's TRUE position within 1.0 m of the victim node; the
+reported coordinates are not used. Only where the robot parks matters.
+
+exp25 queued: flank a body that extends away from the robot, detected by
+the depth spread of its denim (p90 - p10 >= 0.35 m) instead of exp18's
+width test. Also logs depth, width and depth spread at every report.
