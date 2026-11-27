@@ -1001,3 +1001,29 @@ spread of 0.15-0.31 m, but several true small reports show 1.0-1.6 m
 spread does not single out the near-miss cases either. Medium v3's near
 miss (1.15 m) recurred in s5.
 No-improvement streak since exp24: 5 (nav4, nav4c, nav4d, nav4e, exp25).
+
+### Reality check: kept stack (exp24) at 180 s on the untouched worlds (`v180`)
+
+Seeds 0-2, original worlds and supervisor, MISSION_S 180:
+small 1, 3, 3 = 2.33/4 (0 F); medium 3, 2, 2 = 2.33/4 (0.33 F);
+large 0, 0, 0 /5 (both robots flip within 4-29 s in every run: the
+duplicate-floor defect). At 600 s the same seeds gave small 2.67, medium
+3.33: most finds happen before 180 s, so the curriculum costs about half a
+victim per world. Overall supervisor score small s0 0.566.
+
+### Where the kept stack loses victims (missed.py, 12 small + 10 medium runs)
+
+Closest odometry approach to each missed victim and the vision verdicts
+logged within 1.5-3 m:
+- small v1 (missed 9 of 12): robot2 reports v2 from about (4.1,-3.3), 1.4 m
+  from v1, then logs 30-200 candidate frames of v1 blocked
+  `near-prior-report` / `cooldown`. Seen, not allowed to home.
+- small v4 (missed 6 of 12): robots stand 0.7-1.9 m from it for up to
+  438 s; every denim frame is rejected `denim-area-small`, visible area
+  0.026-0.031 m2 against the 0.032 gate, at floor height.
+- medium v1 (missed ~4 of 10): robots within 0.4-1.6 m see no denim at all.
+- medium v3 (missed ~7 of 10): robot1 within 1.0-2.2 m; few candidates,
+  some blocked by fp-zone / near-prior-report; otherwise near misses.
+
+exp26 queued: lower the denim area gate to 0.022 m2 only within 3 m of an
+unreported flyover estimate (small v4).
