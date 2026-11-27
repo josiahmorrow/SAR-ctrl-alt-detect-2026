@@ -1087,3 +1087,30 @@ a flyover estimate more than 1 m off its body could license a duplicate,
 but the licence needs a body projecting within 1 m of that estimate and the
 disclaimed body by construction projected more than 1 m from it. Seeds 0-5,
 small and medium, 600 s.
+
+### exp27 result: rejected
+
+Seeds 0-5 (small s2 void: wall-clock timeout from a physics slowdown):
+small 1.40/4 over 5 runs (0.40 F), medium 2.20/4 over 5 runs (1.40 F),
+against exp24 2.67 (0.17 F) / 2.83 (0.83 F). Clearly worse on both worlds.
+
+Why it failed:
+- The licence fired once in 11 runs (small s2, robot1, estimate
+  (2.85,6.04)); it never fired for v1. Keeping the v1 waypoint did not
+  bring robot2 back to v1: the waypoint's own timer had already run out
+  during the v2 homing, so it was requeued and the robot moved on, and v1
+  sightings were still refused as near-prior-report.
+- Disclaimers are much more common than the small-world count suggested:
+  2-3 per medium run as well ((3.81,-10.47), (16.80,-15.47),
+  (10.81,-24.86) in nearly every run). Keeping all those waypoints
+  reshaped both robots' routes. In small s0 robot2 went on to the v2
+  flyover estimate (4.34,-4.63), re-homed on the already-reported v2 body,
+  sat tilted on it for about 30 s and later filed a duplicate report.
+  Medium false reports rose from 0.83 to 1.40 a run.
+
+Reverted to the kept stack (exp24). The finding stands: v1 is lost because
+the v1 estimate is disclaimed and then given up. A future fix would have to
+revisit only that one estimate (not every disclaimed one) and get the
+robot out of the 1.5 m homing block; I am not pursuing it now, because the
+cost on medium shows how easily changes here disturb the route.
+No-improvement streak since exp24: 7 (stop at 10).
