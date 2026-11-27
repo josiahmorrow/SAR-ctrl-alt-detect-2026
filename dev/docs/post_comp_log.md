@@ -1218,3 +1218,36 @@ three worlds. This supersedes the 600 s step-down curriculum and the
 
 Baseline queued (`b180`): kept controller (exp24), seeds 0-5, 180 s, small
 and medium untouched, large repaired.
+
+### b180: 180 s baseline, kept controller (exp24), large on the repaired copy
+
+Interim (small s0-4, medium s0-4, large s0-3; rest still running):
+small 2.40/4 (0.00 F), medium 2.20/4 (0.40 F), large (repaired) 2.00/5
+(0.00 F). On the repaired large world no robot flips; one beaching in four
+runs.
+
+Losses at 180 s (missed.py):
+
+| World | Victim | Missed | Cause |
+|---|---|---|---|
+| small | v1 | 3 of 5 | seen 1.4 m away, blocked near the v2 report |
+| small | v4 | 3 of 5 | not reached, or reached with no denim candidate |
+| small | v3 | 2 of 5 | not reached |
+| medium | v1 | 5 of 5 | robot2 passes 1.2-2.0 m away and sees no candidate |
+| medium | v3 | 3 of 5 | passed at 1.6-2.8 m, no candidate |
+| medium | v2 | 1 of 5 | both robots at 0.7-0.8 m, both blocked by the partner zone |
+| large | v3 | 4 of 4 | never approached (closest 6.9-9.0 m); no flyover estimate near it |
+| large | v2 | 4 of 4 | robot2 within 0.9-1.4 m, candidates lost to cooldown |
+| large | v5 | 3 of 4 | never approached |
+
+Large L0, robot1: reports v4 at 43 s, then stays within about 1 m of it
+for the remaining 137 s, re-homing on the same body whenever it gets more
+than 1.5 m from its report pose; its second flyover waypoint is never
+reached. Robot2 does the same after its report. The flyover gives only 4
+estimates for 5 victims on large.
+
+Queued at 180 s on all three worlds, judged against b180:
+- `r26`: exp26 (smaller denim gate near unreported estimates) re-tested.
+- `exp29`: record the reported body's position and refuse to start homing
+  on a candidate that projects within 1.2 m of it (blocks only; cannot
+  create a duplicate).
