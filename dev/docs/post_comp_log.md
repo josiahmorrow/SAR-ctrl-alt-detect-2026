@@ -1177,3 +1177,21 @@ victim per world in the dev set would do the same on unseen worlds.
 Both targets of Joe's option (d) are now without a sound hypothesis: the
 end-on near misses have no separating feature, and the crate is not
 separable from medium v3 by colour, saturation, thickness or fine texture.
+
+### Leaving the building (finding, 28/11/2026, raised by Joe)
+
+Kept controller, 24 runs (exp24 + exp24x): a robot left the building
+envelope in 9 runs (7 of 12 medium, 2 of 12 small), almost always robot1
+on medium, at the east edge (x 21.9) and the north edge (y 5.1). The
+geofence then drives in a straight line at the nearest point inside the
+envelope (`_drive_toward`, no path planning), i.e. at the wall, which is
+the "re-entering through the wall" behaviour. Time spent outside
+(outside.py): 16-180 s per affected run.
+
+Every exit happened after 408 s, in the exploration phase once the flyover
+waypoints are used up. None happens inside the first 180 s, so it costs
+nothing in the judged 180 s mission and explains none of the missed
+victims, which are lost earlier. A sound fix exists (return along the
+robot's own trail, or plan the way back with A*, and stop exploration
+choosing frontiers outside the envelope) but it would only change late
+600 s development runs. Not pursued.
