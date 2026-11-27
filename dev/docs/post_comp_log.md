@@ -1027,3 +1027,15 @@ logged within 1.5-3 m:
 
 exp26 queued: lower the denim area gate to 0.022 m2 only within 3 m of an
 unreported flyover estimate (small v4).
+
+### exp26: smaller area gate near unreported estimates (seeds 0-5: mixed)
+
+Seeds 0-5: small 2.67/4 (0.33 F; s2 4/4), medium 2.33/4 (1.50 F), against
+exp24 on the same seeds 2.67 (0.17 F) / 2.83 (0.83 F). Small v4, the
+target, found in 4 of 6 runs (exp24: 3 of 6); medium down 0.5, mostly the
+crate phantom and v3 near misses as before (no new false-report kind).
+Medium s0 of the exp24 baseline (4/4) is its best run in 12, so the 6-seed
+medium baseline (2.83) reads high against its 12-seed value (2.67).
+Protocol refinement for mixed results (one world up or level, the other
+down by <= 0.5): extend to seeds 6-11 and decide on 12 seeds against
+exp24 + exp24x. Running `exp26x`.
