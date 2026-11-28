@@ -38,6 +38,7 @@ DENIM_LO, DENIM_HI = np.array([95, 35, 25]), np.array([135, 255, 255])
 AREA_MIN_M2, AREA_MAX_M2 = 0.03, 0.80
 CLUSTER_R_M, MIN_VOTES = 1.0, 6
 MOSAIC = "--mosaic" in sys.argv
+STATS = {}
 DUMP = "--dump" in sys.argv
 
 
@@ -112,9 +113,19 @@ def denim_blobs(frame):
     m = cv2.inRange(hsv, DENIM_LO, DENIM_HI)
     m = cv2.morphologyEx(m, cv2.MORPH_OPEN,
                          cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
-    n, _, stats, cents = cv2.connectedComponentsWithStats(m, 8)
-    return [(cents[i][0], cents[i][1], stats[i, cv2.CC_STAT_AREA])
-            for i in range(1, n) if stats[i, cv2.CC_STAT_AREA] >= 150]
+    n, lab, stats, cents = cv2.connectedComponentsWithStats(m, 8)
+    out = []
+    for i in range(1, n):
+        if stats[i, cv2.CC_STAT_AREA] < 150:
+            continue
+        x, y, w_, h_ = stats[i, :4]
+        sub = lab[y:y + h_, x:x + w_] == i
+        px = hsv[y:y + h_, x:x + w_][sub]
+        STATS[(round(float(cents[i][0]), 1), round(float(cents[i][1]), 1))] = (
+            float(np.median(px[:, 0])), float(np.median(px[:, 1])), float(np.median(px[:, 2])),
+            float(stats[i, cv2.CC_STAT_AREA]) / float(w_ * h_), max(w_, h_) / max(1.0, min(w_, h_)))
+        out.append((cents[i][0], cents[i][1], stats[i, cv2.CC_STAT_AREA]))
+    return out
 
 
 def cluster(pts):
@@ -242,8 +253,33 @@ def run(world):
             canvas[empty] = wp[empty]
         for (bx, by, area) in denim_blobs(frame):
             if AREA_MIN_M2 <= area * s * s <= AREA_MAX_M2:
-                pts.append(tuple(p[i] + s * Oi @ (np.array([bx, by]) - ctr)) + (imu['t'][i],))
+                pts.append(tuple(p[i] + s * Oi @ (np.array([bx, by]) - ctr)) + (imu['t'][i], bx, by, i, area * s * s) + STATS.get((round(float(bx), 1), round(float(by), 1)), (0, 0, 0, 0, 0)))
     est = cluster(pts)
+    for (ex, ey, nv) in est:
+        mem = [q for q in pts if np.hypot(q[0] - ex, q[1] - ey) < CLUSTER_R_M]
+        P = np.array([[q[0], q[1]] for q in mem])
+        C = np.array([p[q[5]] for q in mem])
+        dP, dC = P - P.mean(0), C - C.mean(0)
+        lam = -float((dP * dC).sum() / max((dC * dC).sum(), 1e-9))
+        print(f"   height test ({ex:+.2f},{ey:+.2f}) n={nv} cam spread "
+              f"{np.sqrt((dC * dC).sum(1).mean()):.2f} m  lambda {lam:+.3f}  "
+              f"resid {np.sqrt(((dP + lam * dC) ** 2).sum(1).mean()):.2f} m")
+        print('      H %.0f S %.0f V %.0f fill %.2f aspect %.1f area %.2f' % tuple(np.median([q[k] for q in mem]) for k in (7, 8, 9, 10, 11, 6)))
+    if '--sheet' in sys.argv:
+        tiles = []
+        for (ex, ey, nv) in est:
+            mem = sorted([q for q in pts if np.hypot(q[0] - ex, q[1] - ey) < CLUSTER_R_M], key=lambda q: q[5])
+            q = mem[len(mem) // 2]
+            cap.set(cv2.CAP_PROP_POS_FRAMES, q[5])
+            _, fr = cap.read()
+            x0, y0 = int(max(0, min(fr.shape[1] - 480, q[3] - 240))), int(max(0, min(fr.shape[0] - 480, q[4] - 240)))
+            crop = fr[y0:y0 + 480, x0:x0 + 480].copy()
+            cv2.circle(crop, (int(q[3] - x0), int(q[4] - y0)), 6, (0, 0, 255), 2)
+            cv2.putText(crop, f'({ex:.1f},{ey:.1f}) n={nv} a={np.median([m_[6] for m_ in mem]):.2f}', (5, 22), 0, 0.6, (0, 255, 255), 2)
+            tiles.append(cv2.resize(crop, (320, 320)))
+        while len(tiles) % 5:
+            tiles.append(np.zeros((320, 320, 3), np.uint8))
+        cv2.imwrite(os.path.join(os.environ.get('TEMP', '.'), f'dr_sheet_{world}.png'), np.vstack([np.hstack(tiles[k:k + 5]) for k in range(0, len(tiles), 5)]))
     if DUMP:
         for i in range(0, n, 300):
             print(f"   t={imu['t'][i]:5.1f} cam=({p[i][0]:6.2f},{p[i][1]:6.2f}) "
@@ -277,6 +313,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
 
 
 

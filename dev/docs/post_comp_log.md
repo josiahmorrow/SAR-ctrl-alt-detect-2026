@@ -1390,3 +1390,38 @@ against IMU speed is the candidate); (3) not wired into the preflight;
 (4) the wall map still comes from the old path.
 
 Earlier 2-D tracking attempts (`flyover_vo.py`) are superseded.
+
+### flyover_dr.py as a solution module; dr1 queued
+
+`flyover_dr.py` now sits beside `flyover_extraction.py` (no dev imports;
+`dev/tools/check_dr.py` scores it offline; the exploratory script is
+`dev/tools/flyover_dr_proto.py`). Two filters added, both geometric:
+a patch must be filled (area / bounding box >= 0.20, which drops the
+outline of the medium cart's blue frame from the main cluster), and a
+cluster seen over a camera baseline of >= 0.6 m whose position slides
+against the camera's motion with parallax > 0.17 (a surface roughly 0.65 m
+or more above the floor) is dropped as elevated: this removes three of
+the five forklift-seat estimates on large. Flagged under rule 7: the two
+thresholds were chosen looking at these three recordings; the principle
+(victims lie on the floor) is general, the numbers are not validated
+elsewhere.
+
+Offline result of the module: all 13 victims within 1.07 m (small 0.82,
+0.07, 0.20, 0.38; medium 0.47, 1.07, 0.15, 0.54; large 0.25, 0.59, 0.26,
+0.91, 0.57). Extra estimates: small 2 (plaid blanket, pillows; the "v1"
+estimate is in fact striped bedding 0.8 m from v1), medium 1 (cart),
+large 2 (forklift seat). No colour, area, fill or parallax measure
+separates bedding from a person; left as is for now.
+
+`make_dr1.py`: in the preflight, after the vendored pipeline has written
+the map and its estimates, `flyover_dr.locate_victims` overwrites the
+victim CSV (vendored estimates stay if it fails). Wall map unchanged.
+`make_pristine.py` now hashes `flyover_dr.py` too; previous cache kept in
+`_eval/pristine_old`.
+
+b180x / exp31x (seeds 6-11) were stopped after seeds 6-7 to free the
+machine; exp31 stays unresolved (6-seed result mixed) and will be re-run
+on top of dr1 if dr1 is kept.
+
+Queued `dr1`: kept controller + new estimates, 180 s, small / medium /
+large (repaired), seeds 0-5. Baseline b180: 2.50 / 2.17 / 1.83.

@@ -1,4 +1,4 @@
-"""Snapshot the shipped preflight's outputs once per world, for hermetic runs.
+﻿"""Snapshot the shipped preflight's outputs once per world, for hermetic runs.
 
 A mission is not independent of the one before it: robot1 overwrites
 sim_logs/map_estimate.png with the learned map at the end of the mission, and
@@ -53,7 +53,8 @@ META = "_pristine_meta.json"
 def _source_hash():
     """Content hash of everything the analysis depends on."""
     h = hashlib.sha256()
-    for f in ("prepare_mission.py", "flyover_extraction.py", "route_planning.py"):
+    for f in ("prepare_mission.py", "flyover_extraction.py", "route_planning.py",
+              "flyover_dr.py"):
         with open(os.path.join(SOL, f), "rb") as fh:
             h.update(fh.read().replace(b"\r\n", b"\n"))
     for f in ("_analyse_both", "_promote_side_outputs"):
