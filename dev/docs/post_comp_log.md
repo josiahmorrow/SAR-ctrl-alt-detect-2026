@@ -1596,3 +1596,21 @@ at height; not established); many thresholds tuned on these recordings.
 Not wired in. Useful product: a per-cell prior (unseen / seen floor / wall
 line / raised) for the robots as SOFT cost, in _scratch/agentA2/*_prior.npz.
 Untested next idea: fuse with the current map (walls agreed by both).
+
+### dr4 / dr5 on the v1 estimates: rejected
+
+| 180 s | small | medium | large (repaired) |
+|---|---|---|---|
+| b180 | 2.50 | 2.17 | 1.83 |
+| dr3 | 2.00 | 1.60 | 1.00 |
+| dr4 estimate-based reporting | 1.67 (0.33 F) | 1.50 (0.83 F) | 1.60 (5 seeds) |
+| dr5 = dr4 + arrival report (partial) | 2.00 (4) | 1.00 (1) | 1.00 (3) |
+
+dr4's licence fired three times, all on small, all FALSE: 4-5 s after
+reporting v2 the robot re-reported the same body (0.69-0.72 m from v2) as
+if it belonged to the 'v1' estimate. With the v1 localiser that estimate
+is the striped bedding at (2.54,-2.42), not v1, so the licence had the
+wrong second location to work from. dr5's arrival report never fired (no
+scan ended within 0.7 m of an unconsumed estimate). Both rejected in this
+form. dr4 is re-tested as `v2d4` on the v2 estimates, where v1's own
+location is 0.44 m from v1.
