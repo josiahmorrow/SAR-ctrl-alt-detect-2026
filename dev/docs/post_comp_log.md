@@ -1311,3 +1311,36 @@ the macOS preflight outputs (estimate errors 0.13-0.96 m) in place of this
 machine's. It measures what the controller does when the estimates are
 good, i.e. the ceiling a sound extraction would unlock. Dev-only
 measurement; nothing from it ships.
+
+### exp31 final and macL (good-estimates ceiling), 180 s
+
+| 180 s, 6 seeds | small | medium | large (repaired) |
+|---|---|---|---|
+| b180 (kept) | 2.50 | 2.17 (0.50 F) | 1.83 of 5 (0.00 F) |
+| exp31 partner zone in FOV | 2.33 | 2.20 (5 seeds, 0.80 F) | 2.17 (0.17 F) |
+| macL: kept + macOS flyover estimates | - | - | **3.17 (0.83 F)** |
+
+exp31 is mixed (small -0.17 on one seed, large +0.33): extended to seeds
+6-11 with a matching baseline (`b180x`, `exp31x`).
+
+macL confirms the estimates are the main lever. With estimates 0.13-0.96 m
+from the victims, the same controller finds v4 at 21-23 s, v2 at 31 s and
+v5 at 70 s in every run: 3.17 of 5 against 1.83, and v1 in one run. Still
+missed: v3 (robot2 gets within 2.4-4.1 m, no candidate) and v1 (reached
+late). The false reports are duplicates of v4 by the second robot.
+
+### flyover_vo.py prototype (offline, not wired in)
+
+`dev/tools/flyover_vo.py`: anchor the pixel-to-ground map on the origin
+marker, then carry it frame to frame with an optical-flow similarity, and
+cluster projected denim blobs. On small: tracking runs (1136 of 1147
+frames) but the result is not usable: matched errors 1.7-8 m, and the
+mosaic is not self-consistent. Cause: the camera is only about 4 m up and
+the walls are 2.4 m, so parallax dominates; a single 2-D motion model
+(dominant, rigid, or slowest-layer, all tried) does not follow the floor.
+Denim alone also picks up blue furniture from above.
+
+Next step: proper two-view geometry instead of a 2-D model (essential
+matrix per frame pair with intrinsics from the camera FOV, triangulate,
+take the floor as the deepest plane to fix scale from the known height),
+and a victim detector that uses shape and skin as well as denim.
