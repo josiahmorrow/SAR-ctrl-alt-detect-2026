@@ -1,4 +1,4 @@
-﻿"""Snapshot the shipped preflight's outputs once per world, for hermetic runs.
+"""Snapshot the shipped preflight's outputs once per world, for hermetic runs.
 
 A mission is not independent of the one before it: robot1 overwrites
 sim_logs/map_estimate.png with the learned map at the end of the mission, and

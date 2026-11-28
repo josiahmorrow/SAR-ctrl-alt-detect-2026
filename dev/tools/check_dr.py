@@ -1,4 +1,4 @@
-﻿import sys, os, numpy as np
+import sys, os, numpy as np
 sys.path.insert(0, "."); sys.path.insert(0, "dev/tools")
 import flyover_extraction as fx, flyover_dr as dr, eval_harness as eh
 REPO = os.path.abspath("../..")

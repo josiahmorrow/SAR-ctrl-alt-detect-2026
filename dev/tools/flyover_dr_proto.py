@@ -1,4 +1,4 @@
-﻿"""Prototype: victim localisation from the flyover by strap-down dead reckoning.
+"""Prototype: victim localisation from the flyover by strap-down dead reckoning.
 
 The flyover IMU is a body-frame sensor on a UAV that flies straight legs and
 turns on the spot. Read as that, it needs no fitted constants:
