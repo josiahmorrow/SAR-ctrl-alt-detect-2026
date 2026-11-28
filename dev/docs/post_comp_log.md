@@ -1274,3 +1274,40 @@ stack so they can be judged separately):
   waypoint will be tried first; otherwise abandoned and broadcast.
 - `exp31`: the partner false-positive zone (2.5 m) applies only when the
   partner is within the camera's field of view (+15 deg) or within 0.8 m.
+
+### exp29, exp30 at 180 s: rejected. exp31 running
+
+| 180 s, 6 seeds | small | medium | large (repaired) |
+|---|---|---|---|
+| b180 (kept) | 2.50 (0.00 F) | 2.17 (0.50 F) | 1.83 of 5 |
+| exp29 reported-body block | 2.50 | 2.17 | 1.50 |
+| exp30 no back-to-back retry | 2.50 | 2.00 (0.83 F) | 1.50 |
+| exp31 partner zone in FOV (2-3 seeds) | 2.00 | 2.00 | 2.00 |
+
+exp29 never fires on small or medium (identical runs) and loses on large;
+exp30 loses on medium and large. Both **rejected**.
+
+### Re-reading the losses: the flyover victim estimates are the main cause
+
+The 180 s loss table lines up with the flyover estimate errors measured at
+the start of this work (distance from each true victim to its nearest
+estimate, this machine): small 0.25, 0.77, 0.80, **5.84**; medium **6.41**,
+1.43, 0.62, **12.57**; large **3.17**, 0.93, **5.78**, 0.77, **3.43**
+(scored average error on large 4.95 m). The victims the robots never
+approach or never see (small v4, medium v1 and v3, large v3 and v5) are the
+ones with no estimate within about 3 m. In 180 s there is no time to find
+a victim by exploration, so a victim without a usable estimate is lost
+before the controller starts. The controller experiments since exp24 have
+been working on the minority of the loss.
+
+The extraction (`flyover_extraction.py`, vendored) projects detections
+along an IMU dead-reckoned track with scale constants chosen by recording
+duration and fitted to the three practice recordings; it was shown earlier
+to move estimates by up to 1.6 m for a one-grey-level pixel change. That
+is the opposite of rule 7.
+
+Diagnostic queued (`macL`): kept controller, large (repaired), 180 s, with
+the macOS preflight outputs (estimate errors 0.13-0.96 m) in place of this
+machine's. It measures what the controller does when the estimates are
+good, i.e. the ceiling a sound extraction would unlock. Dev-only
+measurement; nothing from it ships.
