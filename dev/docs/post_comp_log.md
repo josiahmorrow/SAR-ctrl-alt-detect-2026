@@ -1344,3 +1344,49 @@ Next step: proper two-view geometry instead of a 2-D model (essential
 matrix per frame pair with intrinsics from the camera FOV, triangulate,
 take the floor as the deepest plane to fix scale from the known height),
 and a victim detector that uses shape and skin as well as denim.
+
+### flyover_dr.py: dead reckoning done properly locates every victim (offline)
+
+The flyover IMU turns out to be clean and simple once read as what it is,
+a body-frame sensor: the UAV flies straight legs (acc_x is forward
+acceleration, trapezoid speed profile, cruise 2.5 m/s, speed returns to
+0.00 between legs) and turns on the spot (gyro_z). The vendored extraction
+integrates the body-frame acceleration as if it were world-frame, then
+patches the result with scale constants per recording length (0.13, 0.18,
+"y from x = -2.0"). That is where the 3-12 m errors come from.
+
+`dev/tools/flyover_dr.py` (offline prototype): forward speed = integral of
+acc_x, yaw = integral of gyro_z, position = integral of speed along the
+heading; frame, scale and start position from the origin mat while it is
+in view. Two conventions are measured from the video, not assumed: the
+image direction of "forward" (floor flow on a straight leg) and the yaw
+sign (image rotation during a turn on the spot). One geometric check: a
+downward camera must map pixels to a right-handed ground frame by a
+reflection; the vendored marker calibration fails that (X and Y markers
+are the other way round from what it assumes), so the axes are swapped
+when the determinant has the wrong sign. No fitted constants.
+
+Checks: dead reckoning agrees with the marker to 0.08-0.09 m over the
+span where both exist; IMU speed x frame time / floor image flow gives
+0.0043 m/px at 3 s and at 46 s against 0.0044 from the marker (small).
+
+Distance from each true victim to its estimate (m):
+
+| World | flyover_dr (new) | this machine's shipped extraction |
+|---|---|---|
+| small | 0.79, 0.07, 0.20, 0.38 | 0.25, 0.77, 0.80, 5.84 |
+| medium | 0.47, 1.07, 0.15, 0.54 | 6.41, 1.43, 0.62, 12.57 |
+| large | 0.25, 0.59, 0.27, 0.91, 0.57 | 3.17, 0.93, 5.78, 0.77, 3.43 |
+
+All 13 victims have an estimate within 1.07 m (12 within 1.0 m).
+
+Not done yet: (1) the detector is denim-only and also reports blue objects
+(spurious estimates: small 2, medium 1, large 5), which would cost
+extraction score and robot time; (2) height is assumed constant after
+take-off (true on these recordings by the flow check on small; the README
+says it may vary under low ceilings), so scale needs a height estimate
+that does not drift (double-integrated acc_z drifts by metres; floor flow
+against IMU speed is the candidate); (3) not wired into the preflight;
+(4) the wall map still comes from the old path.
+
+Earlier 2-D tracking attempts (`flyover_vo.py`) are superseded.
