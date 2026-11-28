@@ -1581,3 +1581,18 @@ _scratch/flyover_dr_v1_backup.py, old cache in _eval/pristine_dr_v1),
 pristine rebuilt, then `v2b` (dr3 controller) and `v2d4` (dr4
 controller) at 180 s, seeds 0-5, all worlds. This is the cln diagnostic
 done legitimately, and valid for medium.
+
+### Wall map, second attempt (`dev/tools/flyover_ortho.py`): not a replacement
+
+Dense near-nadir orthomosaic on flyover_dr poses, walls from long straight
+edges. Best-shift IoU new / current: small 0.278 / 0.271, medium 0.183 /
+0.158, large 0.118 / 0.296. Precision / recall within 0.2 m: small 0.44 /
+0.31, medium 0.39 / 0.38, large 0.29 / 0.49 (current: 0.44 / 0.33, 0.20 /
+0.20, 0.59 / 0.53). The orthomosaics are clean, consistent floor plans and
+the map centre is found within 0.1-0.8 m without ground truth. Weaknesses:
+straight furniture gives false walls; on large the lines sit 0.2-0.5 m
+inside the true walls (drift or scale about 2 % at 10-20 m, or edges seen
+at height; not established); many thresholds tuned on these recordings.
+Not wired in. Useful product: a per-cell prior (unseen / seen floor / wall
+line / raised) for the robots as SOFT cost, in _scratch/agentA2/*_prior.npz.
+Untested next idea: fuse with the current map (walls agreed by both).
