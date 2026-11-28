@@ -1,0 +1,2 @@
+tag,world,run,seed,mission_s,victims_found,victims_total,overall,finding,efficiency,coordination,extraction,ratio,time_score,confidence,avg_time_s,dist_score,dist_per_victim,robots_contributing,map_score,victim_est_score,avg_loc_err_m,total_distance_m,messages,coverage_pct,explore_events,abandoned,tilt_events,found_times,reports,false_reports,wall_clock_s,status
+b180x_L7,large,1,7,180,1,5,0.444,0.491,0.213,0.5,0.469,0.2,0.763,0.511,42.7,0.059,70.9,1,0.776,0.162,4.95,70.9,2,23,0,2,5,42.7,2,1,775.0,ok

@@ -1425,3 +1425,39 @@ on top of dr1 if dr1 is kept.
 
 Queued `dr1`: kept controller + new estimates, 180 s, small / medium /
 large (repaired), seeds 0-5. Baseline b180: 2.50 / 2.17 / 1.83.
+
+### dr1 result: accurate estimates, FEWER finds. Extra estimates are the cost
+
+Pristine outputs rebuilt with the hook (6 / 5 / 7 estimates; scored average
+location error 0.37 / 0.56 / 0.52 m, was 0.66 / 0.95 / 4.95).
+
+| 180 s, 6 seeds | small | medium | large (repaired) |
+|---|---|---|---|
+| b180 (old estimates) | 2.50 (0.00 F) | 2.17 (0.50 F) | 1.83 of 5 (0.00 F) |
+| dr1 (flyover_dr estimates) | 1.83 (0.17 F) | 1.67 (0.67 F) | 1.00 of 5 (0.67 F) |
+| macL (5 accurate estimates, no extras) | - | - | 3.17 |
+
+dr1 is worse on all three worlds although every victim now has an
+estimate within about 1 m. Cause, from the timelines: the extra estimates
+(bedding on small, the cart on medium, the forklift seat on large) are
+visited like any other. Large L1: robot1 is assigned the two forklift
+estimates first and spends 0-90 s on them (scan, a "second look" from the
+other side for each, a waypoint timeout and a requeue) and never reaches
+its two real victims; robot2 beaches at 86 s. Small: robot1's first
+waypoints are the two beds. With the old extraction the robots had fewer
+and nearer-to-truth-or-nothing waypoints. macL shows what 5 clean
+estimates are worth (3.17), so the localisation is right and the extras
+are the whole problem.
+
+Tried and failed for separating people from blue objects seen from above:
+colour (H, S, V), patch area, fill, aspect, parallax height (victims
+0.05-0.14, forklift seat 0.11-0.65, bed 0.15), and skin next to denim
+(the scenes are too dark: zero skin pixels at V >= 140 for every cluster,
+victims included; lowering V would be tuning to these recordings).
+
+So the dismissal has to be cheap on the robot side. Queued at 180 s on
+dr1, seeds 0-5, all worlds:
+- `dr3`: SECOND_LOOK off. The second look (exp08) was added when estimates
+  were metres out; with estimates within 1 m, a scan that sees nothing at
+  the estimate means there is nothing there.
+- `dr2`: dr3 + exp30 (no back-to-back retry of a stalled waypoint).
