@@ -1251,3 +1251,26 @@ Queued at 180 s on all three worlds, judged against b180:
 - `exp29`: record the reported body's position and refuse to start homing
   on a candidate that projects within 1.2 m of it (blocks only; cannot
   create a duplicate).
+
+### b180 final and r26 (180 s, 6 seeds, large on the repaired copy)
+
+| | small | medium | large (repaired) |
+|---|---|---|---|
+| b180 (kept, exp24) | 2.50/4 (0.00 F) | 2.17/4 (0.50 F) | 1.83/5 (0.00 F) |
+| r26 (exp26 re-test) | 2.17 (0.17 F) | 2.33 (1.00 F) | 1.17 (0.33 F) |
+
+r26 **rejected**: large and small down.
+
+exp29 interim (2-3 seeds): the reported-body block fires only on large
+(L0: 33 frames) and works as designed, but robot1 still spends 100 s in
+the same pocket. Its remaining flyover waypoint (11.9,2.1) lies beyond a
+wall; it stalls (35 s), is requeued into the very next slot and stalls
+again. On large the flyover wall grid is mostly false lines, so the route
+is found by lidar alone.
+
+Queued after exp29 (180 s, all three worlds, seeds 0-5, each on the kept
+stack so they can be judged separately):
+- `exp30`: a stalled flyover waypoint is requeued only if another flyover
+  waypoint will be tried first; otherwise abandoned and broadcast.
+- `exp31`: the partner false-positive zone (2.5 m) applies only when the
+  partner is within the camera's field of view (+15 deg) or within 0.8 m.
