@@ -1520,3 +1520,28 @@ Reading: the controller reports only on what its camera confirms, and it
 keeps a 1.5 m no-report zone round each report. Both rules were written
 for inaccurate estimates. With estimates within about 1 m they can be
 re-based on the estimates themselves (one estimate, one victim).
+
+### dr4 / dr5 queued: reporting rules based on the flyover estimates
+
+cln final (6 seeds): see the runs; small and large valid, medium invalid.
+
+`make_dr4.py` on the dr3 stack: every report (own or partner) consumes the
+nearest unconsumed estimate within 1.5 m; inside the old no-report zones a
+candidate is allowed when its projected position is within 1.0 m of an
+unconsumed estimate and nearer to it than to any consumed one; the 0.5 m
+exact-double guard stays. `dr5` = dr4 + a position-only report after an
+empty scan when the robot stands within 0.7 m of an unconsumed estimate
+(expected to add false reports at the bedding / forklift estimates; run to
+measure the trade). Both at 180 s, seeds 0-5, all three worlds, normal
+pristine (new estimates, extras included).
+
+Open: why medium re-runs the preflight inside the run under
+SAR_PRISTINE_DIR (not yet investigated).
+
+Joe 28/11 22:20: asked what is obtainable (answered: roughly 65-75 / 60-70
+/ 55-65 %), whether the robots communicate (position, reports, abandoned
+targets only) and whether the flyover could give walls and obstacles to the
+robots (not today: the wall map is mis-placed and the controller is
+lidar-first; feasible now with flyover_dr poses, with parallax for height).
+Planned next after dr4/dr5: flyover wall + obstacle map into routing, then
+robot-to-robot coordination (shared map, target claims, body positions).

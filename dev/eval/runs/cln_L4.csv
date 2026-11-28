@@ -1,0 +1,2 @@
+tag,world,run,seed,mission_s,victims_found,victims_total,overall,finding,efficiency,coordination,extraction,ratio,time_score,confidence,avg_time_s,dist_score,dist_per_victim,robots_contributing,map_score,victim_est_score,avg_loc_err_m,total_distance_m,messages,coverage_pct,explore_events,abandoned,tilt_events,found_times,reports,false_reports,wall_clock_s,status
+cln_L4,large,1,4,180,3,5,0.709,0.688,0.338,1.0,0.777,0.6,0.474,0.99,94.7,0.308,29.4,2,0.776,0.778,0.52,88.3,3,24,0,0,0,28.2 80.9 175.0,3,0,684.9,ok
