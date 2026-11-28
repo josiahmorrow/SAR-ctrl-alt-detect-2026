@@ -1485,3 +1485,38 @@ offline diagnostic only, in `_eval/pristine_clean`, never shipped). It
 answers one question: if the extra estimates could be removed, what would
 the new localisation be worth on each world? If `cln` is not clearly above
 b180, the limit is the controller's use of its time, not the estimates.
+
+### cln diagnostic: clean accurate estimates help large, not small
+
+`cln` = dr3 controller + flyover_dr estimates with the extra rows removed
+by hand (diagnostic, 4-5 seeds so far). Medium is INVALID: the controller
+re-ran its own preflight in the run and regenerated the full CSV (robot1
+was still sent to the cart at (16.3,-12.5)), so medium cln is just dr3
+again.
+
+| 180 s | small | medium | large (repaired) |
+|---|---|---|---|
+| b180 (old estimates) | 2.50 | 2.17 | 1.83 |
+| dr3 (new estimates incl. extras) | 2.00 | 1.60 | 1.00 |
+| cln (new estimates, extras removed) | 1.80 | invalid | 2.50 |
+
+Large: removing the extras is worth +1.5 victims over dr3 and +0.7 over
+the baseline (v2 at 28 s in every run, v4 and v5 most runs; v3 and v1
+still missed: reached late or not seen).
+
+Small: clean, accurate estimates are WORSE than the old ones (1.80 against
+2.50). With every victim's estimate within 0.8 m, what remains is purely
+the robot side:
+- v4, 4 of 4 runs: robot2 sits within 1.0 m of the victim for 100-126 s
+  and never has a single denim candidate (the body is hidden from where
+  the accurate estimate leads it; with the old 5.8 m-off estimate the
+  robots sometimes passed a side from which it is visible).
+- v1, 4 of 4: seen 21-39 times, refused every time as near the v2 report
+  (1.4 m away).
+So on small two of four victims are lost to reporting rules, not to
+finding: the robot is beside the victim and does not report.
+
+Reading: the controller reports only on what its camera confirms, and it
+keeps a 1.5 m no-report zone round each report. Both rules were written
+for inaccurate estimates. With estimates within about 1 m they can be
+re-based on the estimates themselves (one estimate, one victim).
