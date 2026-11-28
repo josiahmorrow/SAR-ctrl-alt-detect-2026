@@ -1461,3 +1461,27 @@ dr1, seeds 0-5, all worlds:
   were metres out; with estimates within 1 m, a scan that sees nothing at
   the estimate means there is nothing there.
 - `dr2`: dr3 + exp30 (no back-to-back retry of a stalled waypoint).
+
+### dr2 / dr3 (rerun after a BOM failure): still below the baseline
+
+The first dr2/dr3 batch exited in seconds: `ps_dr3.py` had been written
+with a UTF-8 BOM and `make_pristine`'s `ast.parse` rejected it. BOMs
+stripped, pristine rebuilt, batch rerun.
+
+| 180 s | small | medium | large (repaired) |
+|---|---|---|---|
+| b180 (old estimates) | 2.50 | 2.17 | 1.83 |
+| dr1 (new estimates) | 1.83 | 1.67 | 1.00 |
+| dr3 = dr1, second look off (4-5 seeds) | 2.00 | 1.75 | 1.00 |
+| dr2 = dr3 + no back-to-back retry (5-6 seeds) | 2.00 | 1.60 | 1.33 |
+
+Slightly better than dr1, still worse than b180 everywhere. Real victims
+with accurate estimates are still reached late (large v1 at 135-146 s) or
+not at all (small v4).
+
+Diagnostic queued (`cln`): dr3 controller with the flyover_dr estimates
+MINUS the five extra ones (rows deleted by hand using ground truth:
+offline diagnostic only, in `_eval/pristine_clean`, never shipped). It
+answers one question: if the extra estimates could be removed, what would
+the new localisation be worth on each world? If `cln` is not clearly above
+b180, the limit is the controller's use of its time, not the estimates.
