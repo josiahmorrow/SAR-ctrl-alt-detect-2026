@@ -1545,3 +1545,39 @@ robots (not today: the wall map is mis-placed and the controller is
 lidar-first; feasible now with flyover_dr poses, with parallax for height).
 Planned next after dr4/dr5: flyover wall + obstacle map into routing, then
 robot-to-robot coordination (shared map, target claims, body positions).
+
+### Parallel agents (Joe approved 28/11 22:59): results so far
+
+**Coordination** (patch scripts only, compile-checked, in _scratch): co1 target
+claims, co2 share the reported body position, co3 share sightings, co4 share
+wall cells. Robot-to-robot channel is 73. Not yet simulated.
+
+**Wall / obstacle map, first attempt** (`dev/tools/flyover_map.py`, sparse
+feature parallax on flyover_dr poses): walls land in the right place (large
+map centre within 0.13 m) but recall is 0.2-0.46 and no single wall rule
+holds on all three worlds. Offline best-shift IoU, new (best variant) vs
+current map: small 0.24 / 0.27, medium 0.24 / 0.16, large 0.21 / 0.30. Not
+wired in. Raised-object layer plausible by eye, unvalidated, blind below
+about 0.3 m. Second attempt (dense near-nadir orthomosaic,
+`dev/tools/flyover_ortho.py`) in progress.
+
+**False victim locations** (`dev/tools/flyover_dr_v2.py`, scorer
+`check_dr_v2.py`): all 13 victims kept, all false locations removed
+offline. Distances (m): small 0.44, 0.07, 0.20, 0.38; medium 0.47, 1.07,
+0.15, 0.54; large 0.26, 0.60, 0.21, 0.91, 0.35. Rules, all in metres on
+the ground: (1) the connected blue-green object round a denim patch must
+be under 1.0 m2 (a person is about 0.85 m2 at most); (2) no more than
+0.6 m2 of other denim-coloured area in a 2.4 m crop (patterned fabric);
+(3) a cluster is dropped when too-big views within 0.4 m outnumber half
+its votes; (4) median patch thickness at least 0.08 m (a limb, not a rim);
+(5) the parallax test as before. Rule 7 flag: thresholds were chosen on
+these three recordings. The size limit works over 0.9-1.05 m2 and the
+thickness limit only over 0.08-0.09 m (cart rim 0.072 m, thinnest victim
+0.093 m), so (4) is fragile. Known risks: a victim on a large blue
+surface, two denim-clad victims side by side, a victim showing a sliver.
+
+Queued after dr5: flyover_dr.py replaced by v2 (v1 kept as
+_scratch/flyover_dr_v1_backup.py, old cache in _eval/pristine_dr_v1),
+pristine rebuilt, then `v2b` (dr3 controller) and `v2d4` (dr4
+controller) at 180 s, seeds 0-5, all worlds. This is the cln diagnostic
+done legitimately, and valid for medium.
