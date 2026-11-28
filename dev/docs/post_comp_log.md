@@ -1642,3 +1642,33 @@ Queued: `to1` (cap = max(40 s, 15 s + distance / 0.30 m/s)) and `to2`
 (to1 + STALL_ABANDON on, so being stuck is detected by lack of progress
 instead of by the clock), on the dr3 controller + v2 estimates, 180 s,
 seeds 0-5, all worlds.
+
+### to1 / to2 (waypoint time cap): no gain. The robots arrive and do not see
+
+| 180 s, v2 estimates | small | medium | large (repaired) |
+|---|---|---|---|
+| b180 (old estimates, exp24) | 2.50 | 2.17 | 1.83 |
+| v2b (dr3) | 1.50 | 1.33 | 2.33 |
+| v2d4 (dr4), 6 seeds | 1.50 | 1.33 | 2.83 (0.50 F) |
+| to1 distance-scaled cap | 1.67 | 1.00 | 2.50 |
+| to2 = to1 + stall abandon (4-5 seeds) | 1.80 | 1.20 | 2.25 |
+
+Medium finds only v4 in almost every run. With the longer cap the robots
+do get near the others (v1 1.7-2.3 m, v3 1.3-1.7 m) and have 0-11 denim
+candidates: from where an accurate estimate brings them, the body is not
+in view (v3 lies under a perforated platform; v1 is seen from its feet).
+Small v4: a robot within 0.9-1.3 m for 50-110 s with 0-1 candidates.
+ARRIVE_VIDEO_M is 1.6 m, so the robot stops 1.6 m from an estimate, scans
+for 6 s, sees nothing and leaves. The controller only reports what its
+camera confirms, so accurate estimates cannot pay off for victims the
+camera cannot see from the approach side.
+
+Queued `ar1`: dr5 stack (estimate bookkeeping + position report when a
+scan ends within 0.7 m of an unconsumed estimate) with ARRIVE_VIDEO_M
+0.6 m so the robot actually drives onto the estimate, and `ar1co2`
+(ar1 + shared body position). Basis: the flyover saw a person there to
+within about 0.5 m; parking within 0.7 m of that point puts the robot
+within the 1.0 m radius for an estimate error up to about 0.3-0.7 m
+depending on direction. Risks: false report where the estimate is more
+than about 0.5 m out (medium v2 1.07 m, large v4 0.91 m) and on unseen
+worlds wherever the localiser reports a non-victim.
