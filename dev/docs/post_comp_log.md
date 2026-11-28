@@ -1614,3 +1614,31 @@ wrong second location to work from. dr5's arrival report never fired (no
 scan ended within 0.7 m of an unconsumed estimate). Both rejected in this
 form. dr4 is re-tested as `v2d4` on the v2 estimates, where v1's own
 location is 0.44 m from v1.
+
+### v2b / v2d4: clean accurate estimates in the simulator
+
+flyover_dr v2 wired in (4 / 4 / 5 estimates, none false).
+
+| 180 s | small | medium | large (repaired) |
+|---|---|---|---|
+| b180 (old estimates) | 2.50 | 2.17 | 1.83 |
+| v2b = dr3 controller | 1.50 | 1.33 | 2.33 (0.83 F) |
+| v2d4 = dr4 controller (4-5 seeds) | 1.60 | 1.20 | 2.75 (0.50 F) |
+
+Large is clearly up (v2 at 28 s in every run, v4 and v5 most runs; the
+false reports are robot1 re-reporting v4). Small and medium are clearly
+down, with every victim's estimate within about 1 m and no false ones.
+Why, from the timelines (medium M1): this is navigation, not detection.
+Robot1's first waypoint is 23 m from the start; it closes at 0.42 m/s, is
+6 m short at 41 s and the flat 40 s WAYPOINT_TIMEOUT_S cap abandons it
+while still closing (STALL_ABANDON is False, so the cap is the only
+stuck test). It leaves, returns, times out again. Robot2 is trapped
+around (4-7,-15.5) on the way to a waypoint 17 m off and burns two caps.
+With the old, wrong estimates the waypoints happened to sit nearer and on
+the open side. Small: v1 still refused near the v2 report, v4 reached
+with no or blocked candidates.
+
+Queued: `to1` (cap = max(40 s, 15 s + distance / 0.30 m/s)) and `to2`
+(to1 + STALL_ABANDON on, so being stuck is detected by lack of progress
+instead of by the clock), on the dr3 controller + v2 estimates, 180 s,
+seeds 0-5, all worlds.
